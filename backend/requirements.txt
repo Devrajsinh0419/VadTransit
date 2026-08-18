@@ -1,0 +1,6 @@
+Django==5.2.5
+djangorestframework==3.16.1
+django-cors-headers==4.7.0
+psycopg[binary]
+channels==4.2.2
+daphne==4.2.1
