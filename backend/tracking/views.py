@@ -82,12 +82,40 @@ class BusLocationCreateView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        """Validates active shift requirement and records a bus location fix."""
+        """Validates active shift requirement, records a bus location fix, and broadcasts real-time updates."""
         serializer = BusLocationCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         location = serializer.save()
+
+        # Broadcast real-time location and ETA update to connected WebSocket clients
+        try:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                eta_data = ETAService.calculate_bus_eta(location.bus)
+                update_payload = {
+                    "bus_id": location.bus.id,
+                    "latitude": float(location.latitude),
+                    "longitude": float(location.longitude),
+                    "recorded_at": location.recorded_at.isoformat(),
+                    "speed": location.speed,
+                    "heading": location.heading,
+                    "eta": ETAResponseSerializer(eta_data).data if eta_data else None
+                }
+                async_to_sync(channel_layer.group_send)(
+                    f"bus_{location.bus.id}",
+                    {
+                        "type": "bus_update",
+                        "data": update_payload
+                    }
+                )
+        except Exception:
+            # Prevent WebSocket broadcast failure from breaking HTTP location ingestion
+            pass
+
         return Response(BusLocationSerializer(location).data, status=status.HTTP_201_CREATED)
 
 

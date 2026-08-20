@@ -66,9 +66,9 @@
 
 -   [x] Receive driver location updates
 -   [x] Store required location information
--   [ ] Send current bus information to passengers
+-   [x] Send current bus information to passengers
 -   [ ] Update bus position on the map
--   [ ] Update ETA when new location data arrives
+-   [x] Update ETA when new location data arrives
 -   [ ] Detect unavailable/offline buses
 -   [ ] Test frequent location updates
 -   [ ] Test reconnect behaviour
