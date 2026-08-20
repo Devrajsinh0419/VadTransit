@@ -3,11 +3,11 @@
 ## Project Foundation
 
 -   [ ] Create project repository and base structure
--   [ ] Set up Django backend
+-   [x] Set up Django backend
 -   [ ] Set up React frontend
--   [ ] Set up PostgreSQL database
--   [ ] Configure development environment
--   [ ] Define project settings and environment variables
+-   [x] Set up PostgreSQL database
+-   [x] Configure development environment
+-   [x] Define project settings and environment variables
 
 ## Transport Data
 
