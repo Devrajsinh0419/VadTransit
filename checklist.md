@@ -75,7 +75,7 @@
 
 ## Admin
 
--   [ ] Create admin authentication
+-   [x] Create admin authentication
 -   [ ] Create admin dashboard
 -   [ ] View active buses
 -   [ ] View bus status
