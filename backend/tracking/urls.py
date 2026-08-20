@@ -1,5 +1,5 @@
 """
-URL routing configuration for driver shifts and bus location tracking.
+URL routing configuration for driver shifts, bus location tracking, and ETA endpoints.
 """
 
 from django.urls import path
@@ -10,6 +10,9 @@ from .views import (
     BusLocationCreateView,
     LatestBusLocationView,
     ActiveBusLocationsView,
+    BusETAView,
+    RouteETAsView,
+    StopArrivalsView,
 )
 
 urlpatterns = [
@@ -22,4 +25,9 @@ urlpatterns = [
     path('locations/', BusLocationCreateView.as_view(), name='location-create'),
     path('buses/<int:bus_id>/location/', LatestBusLocationView.as_view(), name='bus-latest-location'),
     path('buses/active/locations/', ActiveBusLocationsView.as_view(), name='buses-active-locations'),
+
+    # ETA endpoints
+    path('buses/<int:bus_id>/eta/', BusETAView.as_view(), name='bus-eta'),
+    path('routes/<int:route_id>/etas/', RouteETAsView.as_view(), name='route-etas'),
+    path('stops/<int:stop_id>/arrivals/', StopArrivalsView.as_view(), name='stop-arrivals'),
 ]

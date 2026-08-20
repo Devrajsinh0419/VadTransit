@@ -51,13 +51,13 @@
 
 ## ETA and Reliability
 
--   [ ] Define ETA calculation rules
--   [ ] Use fresh location data for live ETA
+-   [x] Define ETA calculation rules
+-   [x] Use fresh location data for live ETA
 -   [x] Store the latest known location and timestamp
--   [ ] Add recent-data ETA fallback
--   [ ] Add scheduled ETA fallback
--   [ ] Show when information is not live
--   [ ] Handle stale location data
+-   [x] Add recent-data ETA fallback
+-   [x] Add scheduled ETA fallback
+-   [x] Show when information is not live
+-   [x] Handle stale location data
 -   [ ] Handle delayed location updates
 -   [ ] Test ETA behaviour during network loss
 -   [ ] Verify time and timestamps across the system

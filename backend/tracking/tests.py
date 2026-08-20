@@ -1,13 +1,14 @@
 """
-Unit and integration tests for driver shift management and bus location tracking endpoints.
+Unit and integration tests for driver shift management, bus location tracking, and ETA calculations.
 """
 
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, time
 from rest_framework import status
 from rest_framework.test import APITestCase
-from transport.models import City, Route, Bus, Driver
+from transport.models import City, Route, Stop, RouteStop, Bus, Driver, Schedule
 from tracking.models import Shift, BusLocation
+from tracking.eta_service import ETAService
 
 
 class TrackingAPITests(APITestCase):
@@ -122,13 +123,13 @@ class TrackingAPITests(APITestCase):
             is_active=True
         )
 
-        loc1 = BusLocation.objects.create(
+        BusLocation.objects.create(
             bus=self.bus1,
             latitude='22.300000',
             longitude='73.180000',
             recorded_at=now - timedelta(minutes=5)
         )
-        loc2 = BusLocation.objects.create(
+        BusLocation.objects.create(
             bus=self.bus1,
             latitude='22.310000',
             longitude='73.190000',
@@ -144,3 +145,102 @@ class TrackingAPITests(APITestCase):
         self.assertEqual(active_resp.status_code, status.HTTP_200_OK)
         self.assertEqual(len(active_resp.data), 1)
         self.assertEqual(active_resp.data[0]['bus_id'], self.bus1.id)
+
+
+class ETAServiceTests(APITestCase):
+    """
+    Test suite for ETA calculation logic including live data, recent data fallback, and scheduled fallback.
+    """
+
+    def setUp(self):
+        """Sets up city, route, stops, bus, active shift, and schedule."""
+        self.city = City.objects.create(name='Vadodara', state='Gujarat')
+        self.route = Route.objects.create(
+            name='Station to Sama', route_code='R101', city=self.city
+        )
+        self.stop1 = Stop.objects.create(
+            name='Station', latitude='22.307159', longitude='73.181219', city=self.city
+        )
+        self.stop2 = Stop.objects.create(
+            name='Sama', latitude='22.335000', longitude='73.198000', city=self.city
+        )
+
+        RouteStop.objects.create(route=self.route, stop=self.stop1, stop_order=1)
+        RouteStop.objects.create(route=self.route, stop=self.stop2, stop_order=2)
+
+        self.bus = Bus.objects.create(
+            registration_number='GJ06AB9999', fleet_number='BUS-99'
+        )
+        self.driver = Driver.objects.create(
+            name='Suresh Patel', phone_number='9123456789'
+        )
+        self.shift = Shift.objects.create(
+            driver=self.driver, bus=self.bus, route=self.route,
+            started_at=timezone.now(), is_active=True
+        )
+        self.schedule = Schedule.objects.create(
+            route=self.route, stop=self.stop2, arrival_time=time(18, 30)
+        )
+
+    def test_live_eta(self):
+        """Tests that location data recorded <= 3 minutes ago produces a 'live' ETA source."""
+        now = timezone.now()
+        BusLocation.objects.create(
+            bus=self.bus,
+            latitude='22.310000',
+            longitude='73.182000',
+            recorded_at=now - timedelta(seconds=60),
+            speed=25.0
+        )
+
+        eta_info = ETAService.calculate_bus_eta(self.bus, stop=self.stop2)
+        self.assertIsNotNone(eta_info)
+        self.assertEqual(eta_info['source'], 'live')
+        self.assertIsNotNone(eta_info['last_location_at'])
+
+        response = self.client.get(f'/api/buses/{self.bus.id}/eta/?stop_id={self.stop2.id}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['source'], 'live')
+
+    def test_recent_data_fallback(self):
+        """Tests that location data recorded 5 minutes ago produces a 'recent' ETA source."""
+        now = timezone.now()
+        BusLocation.objects.create(
+            bus=self.bus,
+            latitude='22.310000',
+            longitude='73.182000',
+            recorded_at=now - timedelta(minutes=5),
+            speed=20.0
+        )
+
+        eta_info = ETAService.calculate_bus_eta(self.bus, stop=self.stop2)
+        self.assertIsNotNone(eta_info)
+        self.assertEqual(eta_info['source'], 'recent')
+        self.assertIsNotNone(eta_info['last_location_at'])
+
+    def test_scheduled_fallback(self):
+        """Tests that location data > 15 minutes old falls back to a 'scheduled' ETA source."""
+        now = timezone.now()
+        BusLocation.objects.create(
+            bus=self.bus,
+            latitude='22.310000',
+            longitude='73.182000',
+            recorded_at=now - timedelta(minutes=30)
+        )
+
+        eta_info = ETAService.calculate_bus_eta(self.bus, stop=self.stop2)
+        self.assertIsNotNone(eta_info)
+        self.assertEqual(eta_info['source'], 'scheduled')
+        self.assertIsNone(eta_info['last_location_at'])
+
+    def test_missing_location_fallback(self):
+        """Tests that when no location records exist for a bus, ETA falls back to 'scheduled'."""
+        eta_info = ETAService.calculate_bus_eta(self.bus, stop=self.stop2)
+        self.assertIsNotNone(eta_info)
+        self.assertEqual(eta_info['source'], 'scheduled')
+        self.assertIsNone(eta_info['last_location_at'])
+
+        # Test stop arrivals endpoint
+        response = self.client.get(f'/api/stops/{self.stop2.id}/arrivals/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(len(response.data) >= 1)

@@ -1,5 +1,5 @@
 """
-DRF Serializers for shift tracking and bus GPS location updates.
+DRF Serializers for shift tracking, bus GPS location updates, and ETA responses.
 Follows field_names.md for exact naming conventions.
 """
 
@@ -98,3 +98,15 @@ class BusLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = BusLocation
         fields = ['id', 'bus_id', 'latitude', 'longitude', 'recorded_at', 'received_at', 'accuracy', 'speed', 'heading']
+
+
+class ETAResponseSerializer(serializers.Serializer):
+    """Serializer for structured ETA responses according to field_names.md."""
+
+    bus_id = serializers.IntegerField()
+    route_id = serializers.IntegerField()
+    stop_id = serializers.IntegerField()
+    eta = serializers.DateTimeField()
+    calculated_at = serializers.DateTimeField()
+    source = serializers.ChoiceField(choices=['live', 'recent', 'scheduled'])
+    last_location_at = serializers.DateTimeField(allow_null=True)

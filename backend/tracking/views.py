@@ -1,5 +1,5 @@
 """
-Views for driver shift management and real-time bus location tracking.
+Views for driver shift management, real-time bus location tracking, and ETA calculation endpoints.
 """
 
 from django.utils import timezone
@@ -7,13 +7,15 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from transport.models import Bus
+from transport.models import Bus, Route, Stop, RouteStop
 from .models import Shift, BusLocation
+from .eta_service import ETAService
 from .serializers import (
     ShiftSerializer,
     ShiftStartSerializer,
     BusLocationCreateSerializer,
     BusLocationSerializer,
+    ETAResponseSerializer,
 )
 
 
@@ -129,3 +131,89 @@ class ActiveBusLocationsView(APIView):
 
         serializer = BusLocationSerializer(latest_locations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class BusETAView(APIView):
+    """
+    API view for calculating the current best ETA for a selected bus.
+    Endpoint: GET /api/buses/{bus_id}/eta/
+    Optional Query Parameters: stop_id
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, bus_id):
+        """Calculates and returns the best ETA for the specified bus."""
+        try:
+            bus = Bus.objects.get(id=bus_id)
+        except Bus.DoesNotExist:
+            return Response({"error": "Bus not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        stop_id = request.query_params.get('stop_id')
+        stop = None
+        if stop_id:
+            try:
+                stop = Stop.objects.get(id=stop_id)
+            except Stop.DoesNotExist:
+                return Response({"error": "Stop not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        eta_data = ETAService.calculate_bus_eta(bus, stop=stop)
+        if not eta_data:
+            return Response({"error": "Could not calculate ETA for the specified bus and stop."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(ETAResponseSerializer(eta_data).data, status=status.HTTP_200_OK)
+
+
+class RouteETAsView(APIView):
+    """
+    API view for retrieving ETAs of active buses operating on a specific route.
+    Endpoint: GET /api/routes/{route_id}/etas/
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, route_id):
+        """Calculates and returns ETAs for all active buses on the specified route."""
+        try:
+            route = Route.objects.get(id=route_id)
+        except Route.DoesNotExist:
+            return Response({"error": "Route not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        active_shifts = Shift.objects.filter(route=route, is_active=True)
+        route_stops = RouteStop.objects.filter(route=route).order_by('stop_order')
+
+        etas = []
+        for shift in active_shifts:
+            for rs in route_stops:
+                eta_data = ETAService.calculate_bus_eta(shift.bus, stop=rs.stop, route=route)
+                if eta_data:
+                    etas.append(eta_data)
+
+        return Response(ETAResponseSerializer(etas, many=True).data, status=status.HTTP_200_OK)
+
+
+class StopArrivalsView(APIView):
+    """
+    API view for retrieving approaching buses and their ETAs for a specific bus stop.
+    Endpoint: GET /api/stops/{stop_id}/arrivals/
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, stop_id):
+        """Calculates and returns approaching active buses and ETAs for the specified stop."""
+        try:
+            stop = Stop.objects.get(id=stop_id)
+        except Stop.DoesNotExist:
+            return Response({"error": "Stop not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Find routes passing through this stop
+        route_ids = RouteStop.objects.filter(stop=stop).values_list('route_id', flat=True)
+        active_shifts = Shift.objects.filter(route_id__in=route_ids, is_active=True)
+
+        arrivals = []
+        for shift in active_shifts:
+            eta_data = ETAService.calculate_bus_eta(shift.bus, stop=stop, route=shift.route)
+            if eta_data:
+                arrivals.append(eta_data)
+
+        # Sort arrivals by ETA timestamp
+        arrivals.sort(key=lambda item: item['eta'])
+        return Response(ETAResponseSerializer(arrivals, many=True).data, status=status.HTTP_200_OK)
