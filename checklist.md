@@ -41,10 +41,10 @@
 
 -   [ ] Create simple driver interface
 -   [ ] Add driver login/access
--   [ ] Add route selection
--   [ ] Add start shift
+-   [x] Add route selection
+-   [x] Add start shift
 -   [ ] Start automatic location updates after shift begins
--   [ ] Add end shift
+-   [x] Add end shift
 -   [ ] Prevent unnecessary interaction while driving
 -   [ ] Handle temporary network loss
 -   [ ] Test location tracking on a real phone
@@ -53,7 +53,7 @@
 
 -   [ ] Define ETA calculation rules
 -   [ ] Use fresh location data for live ETA
--   [ ] Store the latest known location and timestamp
+-   [x] Store the latest known location and timestamp
 -   [ ] Add recent-data ETA fallback
 -   [ ] Add scheduled ETA fallback
 -   [ ] Show when information is not live
@@ -64,8 +64,8 @@
 
 ## Real-Time Tracking
 
--   [ ] Receive driver location updates
--   [ ] Store required location information
+-   [x] Receive driver location updates
+-   [x] Store required location information
 -   [ ] Send current bus information to passengers
 -   [ ] Update bus position on the map
 -   [ ] Update ETA when new location data arrives
