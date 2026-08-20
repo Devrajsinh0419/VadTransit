@@ -11,14 +11,14 @@
 
 ## Transport Data
 
--   [ ] Add Vadodara city
--   [ ] Add initial bus routes
--   [ ] Add route stops in the correct order
--   [ ] Add stop coordinates
+-   [x] Add Vadodara city
+-   [x] Add initial bus routes
+-   [x] Add route stops in the correct order
+-   [x] Add stop coordinates
 -   [ ] Add initial buses
 -   [ ] Add drivers
 -   [ ] Add schedules
--   [ ] Add sample/test transport data
+-   [x] Add sample/test transport data
 
 ## Passenger Experience
 

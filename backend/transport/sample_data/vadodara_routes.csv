@@ -1,0 +1,8 @@
+city_name,state,route_code,route_name,stop_name,latitude,longitude,stop_order,distance_from_previous_stop,expected_travel_time
+Vadodara,Gujarat,R101,Station to Sama,Vadodara Railway Station,22.307159,73.181219,1,0.00,0
+Vadodara,Gujarat,R101,Station to Sama,Sayajigunj,22.312000,73.185000,2,0.80,180
+Vadodara,Gujarat,R101,Station to Sama,Fatehgunj,22.320000,73.190000,3,1.20,240
+Vadodara,Gujarat,R101,Station to Sama,Sama Circle,22.335000,73.198000,4,2.10,360
+Vadodara,Gujarat,R102,Station to Makarpura,Vadodara Railway Station,22.307159,73.181219,1,0.00,0
+Vadodara,Gujarat,R102,Station to Makarpura,Manjalpur,22.270000,73.195000,2,4.50,600
+Vadodara,Gujarat,R102,Station to Makarpura,Makarpura Bus Stand,22.250000,73.200000,3,2.80,420
