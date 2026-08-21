@@ -12,7 +12,8 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        """Checks if the request is read-only or initiated by an admin user."""
+        """Checks if the request is read-only or initiated by an authenticated admin/staff user."""
         if request.method in permissions.SAFE_METHODS:
             return True
-        return bool(request.user and request.user.is_staff)
+        return bool(request.user and request.user.is_authenticated and request.user.is_staff)
+

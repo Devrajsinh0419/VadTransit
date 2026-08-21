@@ -73,6 +73,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
+# Channel Layer configuration for Django Channels WebSocket support
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
 
 # Database configuration for PostgreSQL
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
