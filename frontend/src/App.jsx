@@ -1,122 +1,218 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import Header from './components/common/Header';
+import BottomNav from './components/common/BottomNav';
 
-function App() {
-  const [count, setCount] = useState(0)
+import RouteList from './components/passenger/RouteList';
+import RouteDetail from './components/passenger/RouteDetail';
+import StopList from './components/passenger/StopList';
+import StopDetail from './components/passenger/StopDetail';
+import BusTracker from './components/passenger/BusTracker';
+import MapView from './components/passenger/MapView';
+import FavoritesView from './components/passenger/FavoritesView';
+import AlertsView from './components/passenger/AlertsView';
+
+import { fetchRoutes, fetchAlerts } from './services/api';
+import {
+  getLocalFavoriteRoutes,
+  toggleLocalFavoriteRoute,
+  getLocalFavoriteStops,
+  toggleLocalFavoriteStop,
+} from './services/storage';
+
+/**
+ * Root Application Component for VadTransit Passenger Frontend.
+ * Manages mobile view tab switching, route/stop/bus detail navigation, local favorites state, and service alert counters.
+ * @returns {JSX.Element} The rendered React app layout.
+ */
+export default function App() {
+  const [activeTab, setActiveTab] = useState('routes');
+
+  const [routes, setRoutes] = useState([]);
+  const [alertCount, setAlertCount] = useState(0);
+
+  // Detail view state overlays
+  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [selectedStop, setSelectedStop] = useState(null);
+  const [selectedBus, setSelectedBus] = useState(null);
+  const [selectedMapItem, setSelectedMapItem] = useState(null);
+
+  // Favorites state
+  const [favoriteRouteIds, setFavoriteRouteIds] = useState([]);
+  const [favoriteStopIds, setFavoriteStopIds] = useState([]);
+
+  /**
+   * Initializes stored favorites and fetches initial routes and active alert count.
+   */
+  const loadInitialData = async () => {
+    setFavoriteRouteIds(getLocalFavoriteRoutes());
+    setFavoriteStopIds(getLocalFavoriteStops());
+
+    try {
+      const [rData, aData] = await Promise.all([fetchRoutes(), fetchAlerts()]);
+      setRoutes(rData);
+      const activeAlerts = aData.filter((a) => a.is_active);
+      setAlertCount(activeAlerts.length);
+    } catch (err) {
+      console.error('Error initializing passenger app data', err);
+    }
+  };
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  /**
+   * Resets active detail overlays when changing primary bottom nav tabs.
+   * @param {string} tabKey - Target tab identifier.
+   */
+  const handleTabChange = (tabKey) => {
+    setSelectedRoute(null);
+    setSelectedStop(null);
+    setSelectedBus(null);
+    setActiveTab(tabKey);
+  };
+
+  /**
+   * Toggles a route ID in passenger favorite list.
+   * @param {number|string} routeId - Target route ID.
+   */
+  const handleToggleFavoriteRoute = (routeId) => {
+    const updated = toggleLocalFavoriteRoute(routeId);
+    setFavoriteRouteIds(updated);
+  };
+
+  /**
+   * Toggles a stop ID in passenger favorite list.
+   * @param {number|string} stopId - Target stop ID.
+   */
+  const handleToggleFavoriteStop = (stopId) => {
+    const updated = toggleLocalFavoriteStop(stopId);
+    setFavoriteStopIds(updated);
+  };
+
+  /**
+   * Handles focusing an item (route, stop, or bus) on the interactive map view.
+   * @param {Object} item - Item object to locate on map.
+   */
+  const handleViewOnMap = (item) => {
+    setSelectedMapItem(item);
+    setActiveTab('map');
+  };
+
+  /**
+   * Triggers a manual refresh of current view data.
+   */
+  const handleRefresh = () => {
+    loadInitialData();
+  };
+
+  /**
+   * Renders the current passenger screen based on detail selection and active tab.
+   * @returns {JSX.Element} The active view component.
+   */
+  const renderCurrentView = () => {
+    // 1. Bus Tracker View Overlay
+    if (selectedBus) {
+      return (
+        <BusTracker
+          bus={selectedBus}
+          onBack={() => setSelectedBus(null)}
+          onViewOnMap={handleViewOnMap}
+        />
+      );
+    }
+
+    // 2. Route Detail View Overlay
+    if (selectedRoute) {
+      return (
+        <RouteDetail
+          route={selectedRoute}
+          onBack={() => setSelectedRoute(null)}
+          onSelectStop={(stop) => setSelectedStop(stop)}
+          onViewOnMap={handleViewOnMap}
+          favoriteRouteIds={favoriteRouteIds}
+          onToggleFavorite={handleToggleFavoriteRoute}
+        />
+      );
+    }
+
+    // 3. Stop Detail View Overlay
+    if (selectedStop) {
+      return (
+        <StopDetail
+          stop={selectedStop}
+          onBack={() => setSelectedStop(null)}
+          onSelectBus={(bus) => setSelectedBus(bus)}
+          onViewOnMap={handleViewOnMap}
+          favoriteStopIds={favoriteStopIds}
+          onToggleFavorite={handleToggleFavoriteStop}
+        />
+      );
+    }
+
+    // 4. Primary Bottom Navigation Tabs
+    switch (activeTab) {
+      case 'stops':
+        return (
+          <StopList
+            onSelectStop={(stop) => setSelectedStop(stop)}
+            favoriteStopIds={favoriteStopIds}
+            onToggleFavorite={handleToggleFavoriteStop}
+          />
+        );
+      case 'map':
+        return (
+          <MapView
+            selectedItem={selectedMapItem}
+            onSelectStop={(stop) => setSelectedStop(stop)}
+            onSelectBus={(bus) => setSelectedBus(bus)}
+          />
+        );
+      case 'favorites':
+        return (
+          <FavoritesView
+            favoriteRouteIds={favoriteRouteIds}
+            favoriteStopIds={favoriteStopIds}
+            onToggleFavoriteRoute={handleToggleFavoriteRoute}
+            onToggleFavoriteStop={handleToggleFavoriteStop}
+            onSelectRoute={(route) => setSelectedRoute(route)}
+            onSelectStop={(stop) => setSelectedStop(stop)}
+          />
+        );
+      case 'alerts':
+        return (
+          <AlertsView
+            onAlertCountChange={(count) => setAlertCount(count)}
+          />
+        );
+      case 'routes':
+      default:
+        return (
+          <RouteList
+            routes={routes}
+            onSelectRoute={(route) => setSelectedRoute(route)}
+            favoriteRouteIds={favoriteRouteIds}
+            onToggleFavorite={handleToggleFavoriteRoute}
+          />
+        );
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-container">
+      <Header
+        onRefresh={handleRefresh}
+        activeAlertCount={alertCount}
+        onOpenAlerts={() => handleTabChange('alerts')}
+      />
 
-      <div className="ticks"></div>
+      <main className="main-content">{renderCurrentView()}</main>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+        alertCount={alertCount}
+      />
+    </div>
+  );
 }
-
-export default App
