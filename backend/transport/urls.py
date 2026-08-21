@@ -11,6 +11,7 @@ from .views import (
     BusViewSet,
     ScheduleViewSet,
     ServiceAlertViewSet,
+    FavoriteViewSet,
 )
 
 router = DefaultRouter()
@@ -20,6 +21,8 @@ router.register(r'stops', StopViewSet, basename='stop')
 router.register(r'buses', BusViewSet, basename='bus')
 router.register(r'schedules', ScheduleViewSet, basename='schedule')
 router.register(r'alerts', ServiceAlertViewSet, basename='alert')
+router.register(r'favorites', FavoriteViewSet, basename='favorite')
+
 
 urlpatterns = [
     path('', include(router.urls)),

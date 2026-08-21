@@ -4,7 +4,8 @@ Follows field_names.md for exact naming conventions.
 """
 
 from rest_framework import serializers
-from .models import City, Route, Stop, RouteStop, Bus, Schedule, ServiceAlert
+from .models import City, Route, Stop, RouteStop, Bus, Schedule, ServiceAlert, Favorite
+
 
 
 class CitySerializer(serializers.ModelSerializer):
@@ -137,3 +138,27 @@ class ServiceAlertSerializer(serializers.ModelSerializer):
         if starts_at and ends_at and ends_at < starts_at:
             raise serializers.ValidationError({"ends_at": "End time must be after start time."})
         return data
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    """Serializer for Favorite model following field_names.md."""
+
+    route_id = serializers.PrimaryKeyRelatedField(
+        queryset=Route.objects.all(), source='route', allow_null=True, required=False
+    )
+    stop_id = serializers.PrimaryKeyRelatedField(
+        queryset=Stop.objects.all(), source='stop', allow_null=True, required=False
+    )
+
+    class Meta:
+        model = Favorite
+        fields = ['id', 'device_id', 'route_id', 'stop_id', 'created_at']
+
+    def validate(self, data):
+        """Validates that at least one of route_id or stop_id is provided."""
+        route = data.get('route')
+        stop = data.get('stop')
+        if not route and not stop:
+            raise serializers.ValidationError("Either 'route_id' or 'stop_id' must be provided.")
+        return data
+

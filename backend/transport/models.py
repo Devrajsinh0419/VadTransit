@@ -143,3 +143,26 @@ class ServiceAlert(models.Model):
     def __str__(self):
         """Returns string representation of ServiceAlert."""
         return f"[{self.severity.upper()}] {self.title}"
+
+
+class Favorite(models.Model):
+    """
+    Represents a passenger's saved route or stop associated with their device.
+    """
+    device_id = models.CharField(max_length=255, db_index=True)
+    route = models.ForeignKey(
+        Route, on_delete=models.CASCADE, null=True, blank=True, related_name='favorites'
+    )
+    stop = models.ForeignKey(
+        Stop, on_delete=models.CASCADE, null=True, blank=True, related_name='favorites'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        """Returns string representation of Favorite."""
+        target = self.route.route_code if self.route else (self.stop.name if self.stop else "None")
+        return f"Favorite [{target}] for device {self.device_id}"
+

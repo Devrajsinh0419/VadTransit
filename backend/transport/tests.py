@@ -138,3 +138,21 @@ class TransportAPITests(APITestCase):
         response = self.client.post('/api/alerts/', invalid_alert)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('ends_at', response.data)
+
+    def test_favorites_create_list_delete(self):
+        """Tests creating, listing (filtered by device_id), and deleting passenger favorites without auth."""
+        fav_data = {
+            'device_id': 'device-abc-123',
+            'route_id': self.route.id
+        }
+        create_resp = self.client.post('/api/favorites/', fav_data)
+        self.assertEqual(create_resp.status_code, status.HTTP_201_CREATED)
+        favorite_id = create_resp.data['id']
+
+        list_resp = self.client.get('/api/favorites/?device_id=device-abc-123')
+        self.assertEqual(list_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_resp.data), 1)
+
+        del_resp = self.client.delete(f'/api/favorites/{favorite_id}/')
+        self.assertEqual(del_resp.status_code, status.HTTP_204_NO_CONTENT)
+

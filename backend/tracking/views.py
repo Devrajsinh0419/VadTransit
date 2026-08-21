@@ -67,14 +67,27 @@ class ActiveShiftsView(APIView):
     """
     API view for listing all currently active driver shifts.
     Endpoint: GET /api/shifts/active/
+    Optional Query Parameters: driver_id, bus_id, route_id
     """
     permission_classes = [AllowAny]
 
     def get(self, request):
-        """Returns all currently active driver shifts."""
+        """Returns active driver shifts filtered by optional driver_id, bus_id, or route_id parameters."""
         active_shifts = Shift.objects.filter(is_active=True)
+        driver_id = request.query_params.get('driver_id')
+        bus_id = request.query_params.get('bus_id')
+        route_id = request.query_params.get('route_id')
+
+        if driver_id:
+            active_shifts = active_shifts.filter(driver_id=driver_id)
+        if bus_id:
+            active_shifts = active_shifts.filter(bus_id=bus_id)
+        if route_id:
+            active_shifts = active_shifts.filter(route_id=route_id)
+
         serializer = ShiftSerializer(active_shifts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class BusLocationCreateView(APIView):

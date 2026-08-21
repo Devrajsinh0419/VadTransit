@@ -22,6 +22,7 @@
 
 ## Passenger Experience
 
+<<<<<<< HEAD
 -   [x] Create mobile-first passenger interface
 -   [x] Show available routes
 -   [x] Show bus stops
@@ -35,7 +36,9 @@
 -   [x] Show live/offline/scheduled ETA status
 -   [x] Add favorite routes/stops
 -   [x] Add service and delay alerts
+>>>>>>> fdb5af9 (backend ready for Frontend)
 -   [ ] Test passenger flow on a phone
+
 
 ## Driver Experience
 
