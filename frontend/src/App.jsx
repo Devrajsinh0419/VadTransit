@@ -1,122 +1,105 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from 'react';
+import { DriverApp } from './components/Driver/DriverApp';
+import './App.css';
 
+/**
+ * Root Application Component for VadTransit Frontend.
+ * Provides view switching between Driver Portal and future Admin Portal.
+ */
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPortal, setCurrentPortal] = useState('driver');
+
+  /**
+   * Switches the active portal view.
+   * @param {string} portal - Selected portal ('driver' or 'admin').
+   */
+  const handlePortalSwitch = (portal) => {
+    setCurrentPortal(portal);
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-root">
+      <nav className="portal-selector" style={styles.navBar}>
+        <span style={styles.brand}>VadTransit</span>
+        <div style={styles.navButtons}>
+          <button
+            type="button"
+            style={{
+              ...styles.navBtn,
+              ...(currentPortal === 'driver' ? styles.activeNavBtn : {}),
+            }}
+            onClick={() => handlePortalSwitch('driver')}
+          >
+            Driver Portal
+          </button>
+          <button
+            type="button"
+            style={{
+              ...styles.navBtn,
+              ...(currentPortal === 'admin' ? styles.activeNavBtn : {}),
+            }}
+            onClick={() => handlePortalSwitch('admin')}
+          >
+            Admin Portal
+          </button>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </nav>
 
-      <div className="ticks"></div>
+      {currentPortal === 'driver' && <DriverApp />}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {currentPortal === 'admin' && (
+        <div style={styles.adminPlaceholder}>
+          <div className="driver-card" style={{ maxWidth: '600px', margin: '40px auto' }}>
+            <h2>Admin Portal</h2>
+            <p style={{ color: '#94a3b8' }}>
+              Admin dashboard foundation ready for implementation.
+            </p>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      )}
+    </div>
+  );
 }
 
-export default App
+const styles = {
+  navBar: {
+    display: 'flex',
+    justify: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    borderBottom: '1px solid #334155',
+    padding: '12px 20px',
+    color: '#ffffff',
+  },
+  brand: {
+    fontWeight: 'bold',
+    fontSize: '1.2rem',
+    color: '#38bdf8',
+  },
+  navButtons: {
+    display: 'flex',
+    gap: '10px',
+  },
+  navBtn: {
+    backgroundColor: 'transparent',
+    color: '#94a3b8',
+    border: '1px solid #334155',
+    borderRadius: '6px',
+    padding: '8px 16px',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    fontWeight: '500',
+  },
+  activeNavBtn: {
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    borderColor: '#2563eb',
+  },
+  adminPlaceholder: {
+    backgroundColor: '#0f172a',
+    minHeight: 'calc(100vh - 60px)',
+    padding: '20px',
+  },
+};
+
+export default App;

@@ -4,7 +4,7 @@
 
 -   [ ] Create project repository and base structure
 -   [x] Set up Django backend
--   [ ] Set up React frontend
+-   [x] Set up React frontend
 -   [x] Set up PostgreSQL database
 -   [x] Configure development environment
 -   [x] Define project settings and environment variables
@@ -15,9 +15,9 @@
 -   [x] Add initial bus routes
 -   [x] Add route stops in the correct order
 -   [x] Add stop coordinates
--   [ ] Add initial buses
--   [ ] Add drivers
--   [ ] Add schedules
+-   [x] Add initial buses
+-   [x] Add drivers
+-   [x] Add schedules
 -   [x] Add sample/test transport data
 
 ## Passenger Experience
@@ -39,14 +39,14 @@
 
 ## Driver Experience
 
--   [ ] Create simple driver interface
--   [ ] Add driver login/access
+-   [x] Create simple driver interface
+-   [x] Add driver login/access
 -   [x] Add route selection
 -   [x] Add start shift
--   [ ] Start automatic location updates after shift begins
+-   [x] Start automatic location updates after shift begins
 -   [x] Add end shift
--   [ ] Prevent unnecessary interaction while driving
--   [ ] Handle temporary network loss
+-   [x] Prevent unnecessary interaction while driving
+-   [x] Handle temporary network loss
 -   [ ] Test location tracking on a real phone
 
 ## ETA and Reliability

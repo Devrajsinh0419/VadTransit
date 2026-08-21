@@ -1,0 +1,266 @@
+/* High-contrast, mobile-first styling for Driver Interface */
+
+:root {
+  --driver-bg: #0f172a;
+  --driver-card-bg: #1e293b;
+  --driver-card-border: #334155;
+  --driver-text-primary: #f8fafc;
+  --driver-text-secondary: #94a3b8;
+  --driver-primary: #2563eb;
+  --driver-primary-hover: #1d4ed8;
+  --driver-success: #16a34a;
+  --driver-success-bg: rgba(22, 163, 74, 0.2);
+  --driver-warning: #eab308;
+  --driver-warning-bg: rgba(234, 179, 8, 0.2);
+  --driver-danger: #dc2626;
+  --driver-danger-hover: #b91c1c;
+  --driver-danger-bg: rgba(220, 38, 38, 0.2);
+  --driver-radius: 12px;
+}
+
+.driver-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--driver-text-primary);
+  background-color: var(--driver-bg);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.driver-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--driver-card-border);
+}
+
+.driver-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+  color: var(--driver-text-primary);
+}
+
+.driver-card {
+  background-color: var(--driver-card-bg);
+  border: 1px solid var(--driver-card-border);
+  border-radius: var(--driver-radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.driver-card h2 {
+  font-size: 1.25rem;
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: var(--driver-text-primary);
+}
+
+/* Form Styles */
+.driver-form-group {
+  margin-bottom: 18px;
+}
+
+.driver-form-group label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--driver-text-secondary);
+}
+
+.driver-input,
+.driver-select {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  background-color: var(--driver-bg);
+  color: var(--driver-text-primary);
+  border: 2px solid var(--driver-card-border);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.driver-input:focus,
+.driver-select:focus {
+  border-color: var(--driver-primary);
+  outline: none;
+}
+
+.driver-btn {
+  display: inline-block;
+  width: 100%;
+  padding: 16px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  box-sizing: border-box;
+}
+
+.driver-btn-primary {
+  background-color: var(--driver-primary);
+  color: #ffffff;
+}
+
+.driver-btn-primary:hover {
+  background-color: var(--driver-primary-hover);
+}
+
+.driver-btn-danger {
+  background-color: var(--driver-danger);
+  color: #ffffff;
+}
+
+.driver-btn-danger:hover {
+  background-color: var(--driver-danger-hover);
+}
+
+.driver-btn-secondary {
+  background-color: #475569;
+  color: #ffffff;
+}
+
+.driver-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status Badges */
+.driver-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-live {
+  background-color: var(--driver-success-bg);
+  color: var(--driver-success);
+  border: 1px solid var(--driver-success);
+}
+
+.status-reconnecting {
+  background-color: var(--driver-warning-bg);
+  color: var(--driver-warning);
+  border: 1px solid var(--driver-warning);
+}
+
+.status-error {
+  background-color: var(--driver-danger-bg);
+  color: var(--driver-danger);
+  border: 1px solid var(--driver-danger);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: currentColor;
+}
+
+.pulse {
+  animation: pulse-animation 1.5s infinite;
+}
+
+@keyframes pulse-animation {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* Driver Info Grid */
+.driver-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.driver-info-item {
+  background-color: var(--driver-bg);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--driver-card-border);
+}
+
+.driver-info-label {
+  font-size: 0.8rem;
+  color: var(--driver-text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.driver-info-value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  word-break: break-word;
+}
+
+/* Large Minimalist Driving Display */
+.driving-mode-banner {
+  background-color: #0284c7;
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 16px;
+}
+
+.driver-alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+.driver-alert-error {
+  background-color: var(--driver-danger-bg);
+  color: #fca5a5;
+  border: 1px solid var(--driver-danger);
+}
+
+/* Modal Overlay */
+.driver-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.driver-modal-content {
+  background-color: var(--driver-card-bg);
+  border: 1px solid var(--driver-card-border);
+  border-radius: var(--driver-radius);
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.driver-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
