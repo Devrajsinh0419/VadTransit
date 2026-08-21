@@ -4,7 +4,7 @@
 
 -   [ ] Create project repository and base structure
 -   [x] Set up Django backend
--   [ ] Set up React frontend
+-   [x] Set up React frontend
 -   [x] Set up PostgreSQL database
 -   [x] Configure development environment
 -   [x] Define project settings and environment variables
@@ -22,19 +22,19 @@
 
 ## Passenger Experience
 
--   [ ] Create mobile-first passenger interface
--   [ ] Show available routes
--   [ ] Show bus stops
--   [ ] Add route search
--   [ ] Add stop search
--   [ ] Show nearby stops
--   [ ] Show buses operating on a route
--   [ ] Show live bus location
--   [ ] Show ETA
--   [ ] Show last-updated time
--   [ ] Show live/offline/scheduled ETA status
--   [ ] Add favorite routes/stops
--   [ ] Add service and delay alerts
+-   [x] Create mobile-first passenger interface
+-   [x] Show available routes
+-   [x] Show bus stops
+-   [x] Add route search
+-   [x] Add stop search
+-   [x] Show nearby stops
+-   [x] Show buses operating on a route
+-   [x] Show live bus location
+-   [x] Show ETA
+-   [x] Show last-updated time
+-   [x] Show live/offline/scheduled ETA status
+-   [x] Add favorite routes/stops
+-   [x] Add service and delay alerts
 -   [ ] Test passenger flow on a phone
 
 ## Driver Experience
@@ -88,12 +88,12 @@
 
 ## Maps
 
--   [ ] Add MapLibre
+-   [x] Add MapLibre
 -   [ ] Connect selected OpenStreetMap-based map provider
--   [ ] Display Vadodara map
--   [ ] Display stops
--   [ ] Display routes
--   [ ] Display bus locations
+-   [x] Display Vadodara map
+-   [x] Display stops
+-   [x] Display routes
+-   [x] Display bus locations
 -   [ ] Test map performance on mobile
 -   [ ] Confirm map provider usage limits for MVP
 
