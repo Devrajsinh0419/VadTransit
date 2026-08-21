@@ -6,8 +6,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from transport.models import Bus, Route, Stop, RouteStop
+from rest_framework.permissions import AllowAny, IsAdminUser
+from transport.models import Bus, Route, Stop, RouteStop, ServiceAlert
 from .models import Shift, BusLocation
 from .eta_service import ETAService
 from .serializers import (
@@ -16,6 +16,9 @@ from .serializers import (
     BusLocationCreateSerializer,
     BusLocationSerializer,
     ETAResponseSerializer,
+    AdminFleetStatusSerializer,
+    AdminTripHistorySerializer,
+    AdminDelayHistorySerializer,
 )
 
 
@@ -245,3 +248,127 @@ class StopArrivalsView(APIView):
         # Sort arrivals by ETA timestamp
         arrivals.sort(key=lambda item: item['eta'])
         return Response(ETAResponseSerializer(arrivals, many=True).data, status=status.HTTP_200_OK)
+
+
+class AdminFleetStatusView(APIView):
+    """
+    API view for returning active fleet buses and their real-time service status.
+    Endpoint: GET /api/admin/fleet/
+    Permission: Admin only.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        """Returns active buses and their current service/tracking status for admin monitoring."""
+        now = timezone.now()
+        buses = Bus.objects.all().order_by('fleet_number')
+
+        is_active_param = request.query_params.get('is_active')
+        if is_active_param is not None:
+            buses = buses.filter(is_active=is_active_param.lower() == 'true')
+
+        fleet_data = []
+        for bus in buses:
+            active_shift = Shift.objects.filter(bus=bus, is_active=True).first()
+            latest_loc = BusLocation.objects.filter(bus=bus).order_by('-recorded_at').first()
+
+            if active_shift and latest_loc:
+                age_seconds = (now - latest_loc.recorded_at).total_seconds()
+                if age_seconds <= 180:
+                    bus_status = 'live'
+                elif age_seconds <= 900:
+                    bus_status = 'stale'
+                else:
+                    bus_status = 'offline'
+            else:
+                bus_status = 'offline'
+
+            last_loc_data = None
+            if latest_loc:
+                last_loc_data = {
+                    'latitude': float(latest_loc.latitude),
+                    'longitude': float(latest_loc.longitude),
+                    'recorded_at': latest_loc.recorded_at.isoformat(),
+                    'speed': latest_loc.speed,
+                    'heading': latest_loc.heading,
+                }
+
+            item = {
+                'bus_id': bus.id,
+                'registration_number': bus.registration_number,
+                'fleet_number': bus.fleet_number,
+                'is_active': bus.is_active,
+                'status': bus_status,
+                'shift_id': active_shift.id if active_shift else None,
+                'driver_id': active_shift.driver.id if active_shift else None,
+                'driver_name': active_shift.driver.name if active_shift else None,
+                'route_id': active_shift.route.id if active_shift else None,
+                'route_name': active_shift.route.name if active_shift else None,
+                'route_code': active_shift.route.route_code if active_shift else None,
+                'last_location': last_loc_data,
+            }
+            fleet_data.append(item)
+
+        serializer = AdminFleetStatusSerializer(fleet_data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminTripHistoryView(APIView):
+    """
+    API view for retrieving basic trip history for administrators.
+    Endpoint: GET /api/admin/trips/
+    Permission: Admin only.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        """Returns historical trip and shift records filtered by optional parameters."""
+        queryset = Shift.objects.select_related('driver', 'bus', 'route').all().order_by('-started_at')
+
+        bus_id = request.query_params.get('bus_id')
+        route_id = request.query_params.get('route_id')
+        driver_id = request.query_params.get('driver_id')
+        is_active = request.query_params.get('is_active')
+
+        if bus_id:
+            queryset = queryset.filter(bus_id=bus_id)
+        if route_id:
+            queryset = queryset.filter(route_id=route_id)
+        if driver_id:
+            queryset = queryset.filter(driver_id=driver_id)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+
+        serializer = AdminTripHistorySerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminDelayHistoryView(APIView):
+    """
+    API view for retrieving basic delay and service alert history for administrators.
+    Endpoint: GET /api/admin/delays/
+    Permission: Admin only.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        """Returns delay and service disruption alert history filtered by optional parameters."""
+        queryset = ServiceAlert.objects.select_related('route', 'bus').all().order_by('-starts_at')
+
+        route_id = request.query_params.get('route_id')
+        bus_id = request.query_params.get('bus_id')
+        severity = request.query_params.get('severity')
+        is_active = request.query_params.get('is_active')
+
+        if route_id:
+            queryset = queryset.filter(route_id=route_id)
+        if bus_id:
+            queryset = queryset.filter(bus_id=bus_id)
+        if severity:
+            queryset = queryset.filter(severity=severity)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+
+        serializer = AdminDelayHistorySerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+

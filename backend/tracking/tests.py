@@ -6,9 +6,110 @@ from django.utils import timezone
 from datetime import timedelta, time
 from rest_framework import status
 from rest_framework.test import APITestCase
-from transport.models import City, Route, Stop, RouteStop, Bus, Driver, Schedule
+from django.contrib.auth.models import User
+from transport.models import City, Route, Stop, RouteStop, Bus, Driver, Schedule, ServiceAlert
 from tracking.models import Shift, BusLocation
 from tracking.eta_service import ETAService
+
+
+class AdminMonitoringAPITests(APITestCase):
+    """
+    Test suite for admin fleet status monitoring, trip history, and delay history endpoints.
+    Verifies authentication restrictions and accurate status calculations.
+    """
+
+    def setUp(self):
+        """Sets up admin user, regular user, city, route, bus, driver, shift, location, and alert."""
+        self.admin_user = User.objects.create_superuser(
+            username='adminuser', password='password123', email='admin@example.com'
+        )
+        self.regular_user = User.objects.create_user(
+            username='passengeruser', password='password123'
+        )
+
+        self.city = City.objects.create(name='Vadodara', state='Gujarat')
+        self.route = Route.objects.create(
+            name='Central Circle', route_code='CC1', city=self.city
+        )
+        self.bus = Bus.objects.create(
+            registration_number='GJ06XY9999', fleet_number='BUS-50'
+        )
+        self.driver = Driver.objects.create(
+            name='Mahesh Patel', phone_number='9898000000'
+        )
+
+        now = timezone.now()
+        self.shift = Shift.objects.create(
+            driver=self.driver,
+            bus=self.bus,
+            route=self.route,
+            started_at=now - timedelta(hours=1),
+            is_active=True
+        )
+
+        self.location = BusLocation.objects.create(
+            bus=self.bus,
+            latitude='22.300000',
+            longitude='73.180000',
+            recorded_at=now - timedelta(seconds=60),
+            speed=30.0,
+            heading=90.0
+        )
+
+        self.alert = ServiceAlert.objects.create(
+            title='Central Line Delay',
+            message='Heavy traffic near station',
+            route=self.route,
+            bus=self.bus,
+            severity='warning',
+            starts_at=now - timedelta(hours=2),
+            is_active=True
+        )
+
+    def test_admin_fleet_unauthorized(self):
+        """Tests that unauthenticated and non-admin users cannot access fleet status endpoint."""
+        response = self.client.get('/api/admin/fleet/')
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+        self.client.force_authenticate(user=self.regular_user)
+        response_user = self.client.get('/api/admin/fleet/')
+        self.assertEqual(response_user.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_fleet_success(self):
+        """Tests that admin user receives fleet status with correct tracking status."""
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get('/api/admin/fleet/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        item = response.data[0]
+        self.assertEqual(item['bus_id'], self.bus.id)
+        self.assertEqual(item['status'], 'live')
+        self.assertEqual(item['shift_id'], self.shift.id)
+        self.assertIsNotNone(item['last_location'])
+
+    def test_admin_trips_unauthorized_and_success(self):
+        """Tests trip history endpoint authentication protection and successful output."""
+        response_unauth = self.client.get('/api/admin/trips/')
+        self.assertIn(response_unauth.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get('/api/admin/trips/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['driver_name'], 'Mahesh Patel')
+        self.assertEqual(response.data[0]['status'], 'active')
+
+    def test_admin_delays_unauthorized_and_success(self):
+        """Tests delay history endpoint authentication protection and filtered output."""
+        response_unauth = self.client.get('/api/admin/delays/')
+        self.assertIn(response_unauth.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get('/api/admin/delays/?severity=warning')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Central Line Delay')
+
 
 
 class TrackingAPITests(APITestCase):

@@ -77,14 +77,15 @@
 
 -   [x] Create admin authentication
 -   [ ] Create admin dashboard
--   [ ] View active buses
--   [ ] View bus status
--   [ ] Manage buses
--   [ ] Manage routes
--   [ ] Manage stops
--   [ ] Manage schedules
--   [ ] View basic trip history
--   [ ] View basic delay history
+-   [x] View active buses
+-   [x] View bus status
+-   [x] Manage buses
+-   [x] Manage routes
+-   [x] Manage stops
+-   [x] Manage schedules
+-   [x] View basic trip history
+-   [x] View basic delay history
+
 
 ## Maps
 

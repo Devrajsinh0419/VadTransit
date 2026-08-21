@@ -13,6 +13,9 @@ from .views import (
     BusETAView,
     RouteETAsView,
     StopArrivalsView,
+    AdminFleetStatusView,
+    AdminTripHistoryView,
+    AdminDelayHistoryView,
 )
 
 urlpatterns = [
@@ -30,4 +33,10 @@ urlpatterns = [
     path('buses/<int:bus_id>/eta/', BusETAView.as_view(), name='bus-eta'),
     path('routes/<int:route_id>/etas/', RouteETAsView.as_view(), name='route-etas'),
     path('stops/<int:stop_id>/arrivals/', StopArrivalsView.as_view(), name='stop-arrivals'),
+
+    # Admin Monitoring endpoints
+    path('admin/fleet/', AdminFleetStatusView.as_view(), name='admin-fleet-status'),
+    path('admin/trips/', AdminTripHistoryView.as_view(), name='admin-trip-history'),
+    path('admin/delays/', AdminDelayHistoryView.as_view(), name='admin-delay-history'),
 ]
+

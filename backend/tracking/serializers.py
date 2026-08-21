@@ -5,7 +5,7 @@ Follows field_names.md for exact naming conventions.
 
 from django.utils import timezone
 from rest_framework import serializers
-from transport.models import Bus, Driver, Route
+from transport.models import Bus, Driver, Route, ServiceAlert
 from .models import Shift, BusLocation
 
 
@@ -110,3 +110,70 @@ class ETAResponseSerializer(serializers.Serializer):
     calculated_at = serializers.DateTimeField()
     source = serializers.ChoiceField(choices=['live', 'recent', 'scheduled'])
     last_location_at = serializers.DateTimeField(allow_null=True)
+
+
+class AdminFleetStatusSerializer(serializers.Serializer):
+    """Serializer for representing admin fleet monitoring status of buses."""
+
+    bus_id = serializers.IntegerField()
+    registration_number = serializers.CharField()
+    fleet_number = serializers.CharField()
+    is_active = serializers.BooleanField()
+    status = serializers.ChoiceField(choices=['live', 'stale', 'offline'])
+    shift_id = serializers.IntegerField(allow_null=True)
+    driver_id = serializers.IntegerField(allow_null=True)
+    driver_name = serializers.CharField(allow_null=True)
+    route_id = serializers.IntegerField(allow_null=True)
+    route_name = serializers.CharField(allow_null=True)
+    route_code = serializers.CharField(allow_null=True)
+    last_location = serializers.DictField(allow_null=True)
+
+
+class AdminTripHistorySerializer(serializers.ModelSerializer):
+    """Serializer for basic admin trip history records."""
+
+    trip_id = serializers.IntegerField(source='id', read_only=True)
+    shift_id = serializers.IntegerField(source='id', read_only=True)
+    driver_id = serializers.IntegerField(source='driver.id', read_only=True)
+    driver_name = serializers.CharField(source='driver.name', read_only=True)
+    bus_id = serializers.IntegerField(source='bus.id', read_only=True)
+    bus_fleet_number = serializers.CharField(source='bus.fleet_number', read_only=True)
+    registration_number = serializers.CharField(source='bus.registration_number', read_only=True)
+    route_id = serializers.IntegerField(source='route.id', read_only=True)
+    route_name = serializers.CharField(source='route.name', read_only=True)
+    route_code = serializers.CharField(source='route.route_code', read_only=True)
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Shift
+        fields = [
+            'id', 'trip_id', 'shift_id', 'driver_id', 'driver_name',
+            'bus_id', 'bus_fleet_number', 'registration_number',
+            'route_id', 'route_name', 'route_code',
+            'started_at', 'ended_at', 'is_active', 'status'
+        ]
+
+    def get_status(self, obj):
+        """Returns shift/trip status: 'active' or 'completed'."""
+        return 'active' if obj.is_active else 'completed'
+
+
+class AdminDelayHistorySerializer(serializers.ModelSerializer):
+    """Serializer for basic admin delay history records."""
+
+    alert_id = serializers.IntegerField(source='id', read_only=True)
+    route_id = serializers.IntegerField(source='route.id', read_only=True, allow_null=True)
+    route_name = serializers.CharField(source='route.name', read_only=True, allow_null=True)
+    route_code = serializers.CharField(source='route.route_code', read_only=True, allow_null=True)
+    bus_id = serializers.IntegerField(source='bus.id', read_only=True, allow_null=True)
+    bus_fleet_number = serializers.CharField(source='bus.fleet_number', read_only=True, allow_null=True)
+
+    class Meta:
+        model = ServiceAlert
+        fields = [
+            'id', 'alert_id', 'title', 'message',
+            'route_id', 'route_name', 'route_code',
+            'bus_id', 'bus_fleet_number',
+            'severity', 'starts_at', 'ends_at', 'is_active'
+        ]
+
