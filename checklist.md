@@ -92,7 +92,7 @@
 ## Maps
 
 -   [x] Add MapLibre
--   [ ] Connect selected OpenStreetMap-based map provider
+-   [x] Connect selected OpenStreetMap-based map provider
 -   [x] Display Vadodara map
 -   [x] Display stops
 -   [x] Display routes

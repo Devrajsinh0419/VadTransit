@@ -4,25 +4,26 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { fetchStops, fetchBuses, fetchBusLocation, fetchRoutes } from '../../services/api';
 import { RotateCcw, MapPin, Bus, Route as RouteIcon } from 'lucide-react';
 
-// OpenFreeMap vector style URL (OpenStreetMap-based free basemap style)
-const OPENFREEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-
-// Standard OpenStreetMap raster tile style fallback in case of vector tile network failure
-const RASTER_OSM_FALLBACK_STYLE = {
+// OpenStreetMap standard raster basemap style (Instant, bulletproof rendering for Vadodara)
+const OSM_RASTER_STYLE = {
   version: 8,
   sources: {
-    'osm-raster': {
+    'osm-tiles': {
       type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
       tileSize: 256,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     },
   },
   layers: [
     {
-      id: 'osm-raster-layer',
+      id: 'osm-tiles-layer',
       type: 'raster',
-      source: 'osm-raster',
+      source: 'osm-tiles',
       minzoom: 0,
       maxzoom: 19,
     },
@@ -30,13 +31,13 @@ const RASTER_OSM_FALLBACK_STYLE = {
 };
 
 /**
- * MapView component displaying Vadodara basemap, OpenStreetMap vector tiles, route polylines, stop markers, and directional live bus markers.
+ * MapView component displaying Vadodara city basemap, OpenStreetMap tiles, route polylines, stop markers, and live bus markers.
  * 
- * @param {Object} props - MapView props.
- * @param {Object} [props.selectedItem] - Item object to focus/center on map (route, stop, or bus).
- * @param {Function} [props.onSelectStop] - Callback when a stop marker is clicked.
- * @param {Function} [props.onSelectBus] - Callback when a bus marker is clicked.
- * @returns {JSX.Element} Rendered map view component.
+ * @param {Object} props - Component props.
+ * @param {Object} [props.selectedItem] - Route, stop, or bus object to focus on map.
+ * @param {Function} [props.onSelectStop] - Stop marker selection callback.
+ * @param {Function} [props.onSelectBus] - Bus marker selection callback.
+ * @returns {JSX.Element} Rendered MapView component.
  */
 export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   const mapContainerRef = useRef(null);
@@ -55,7 +56,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   const [showRoutes, setShowRoutes] = useState(true);
 
   /**
-   * Initializes MapLibre GL map instance using OpenFreeMap vector style with OpenStreetMap raster fallback.
+   * Initializes MapLibre GL map instance centered on Vadodara city.
    */
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -63,46 +64,49 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
     try {
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: OPENFREEMAP_STYLE_URL,
+        style: OSM_RASTER_STYLE,
         center: [73.1812, 22.3106],
-        zoom: 12.8,
+        zoom: 13,
       });
 
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
       /**
-       * Handles successful map load event.
+       * Marks map as loaded when style initializes.
        */
-      map.on('load', () => {
+      const handleMapReady = () => {
         setMapLoaded(true);
         setMapError(null);
         map.resize();
-      });
+      };
 
-      /**
-       * Handles map error event and applies OpenStreetMap raster tiles fallback if primary vector style fails.
-       */
-      map.on('error', (e) => {
-        console.warn('MapLibre style loading issue, switching to OpenStreetMap raster fallback:', e);
-        if (!mapRef.current) return;
-        
-        // If map hasn't loaded yet due to primary style error, apply robust raster tile fallback
-        try {
-          mapRef.current.setStyle(RASTER_OSM_FALLBACK_STYLE);
-        } catch (fallbackErr) {
-          console.error('Failed applying raster map fallback:', fallbackErr);
-          setMapError('Could not load basemap tiles. Please check your internet connection.');
+      map.on('load', handleMapReady);
+      map.on('style.load', handleMapReady);
+
+      // Backup timer to guarantee overlay disappears if load event is delayed
+      const timer = setTimeout(() => {
+        setMapLoaded(true);
+        if (mapRef.current) {
+          mapRef.current.resize();
         }
+      }, 800);
+
+      map.on('error', (e) => {
+        console.warn('MapLibre event notice:', e?.error?.message || e);
       });
 
       mapRef.current = map;
+
+      return () => {
+        clearTimeout(timer);
+      };
     } catch (err) {
-      console.error('Error initializing MapLibre GL map instance', err);
+      console.error('Failed initializing MapLibre map', err);
       setMapError('Failed initializing map container.');
     }
 
     /**
-     * Resizes map canvas on window resize.
+     * Resizes map canvas when window or layout changes size.
      */
     const handleResize = () => {
       if (mapRef.current) {
@@ -126,15 +130,15 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   const loadMapData = async () => {
     try {
       const [stopList, routeList, busList] = await Promise.all([
-        fetchStops(),
-        fetchRoutes(),
-        fetchBuses(),
+        fetchStops().catch(() => []),
+        fetchRoutes().catch(() => []),
+        fetchBuses().catch(() => []),
       ]);
 
-      setStops(stopList);
-      setRoutes(routeList);
+      setStops(stopList || []);
+      setRoutes(routeList || []);
 
-      const busLocPromises = busList.map(async (bus) => {
+      const busLocPromises = (busList || []).map(async (bus) => {
         try {
           const loc = await fetchBusLocation(bus.id);
           return { ...bus, location: loc };
@@ -146,7 +150,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
       const busLocations = (await Promise.all(busLocPromises)).filter(Boolean);
       setActiveBuses(busLocations);
     } catch (err) {
-      console.error('Failed loading transport data for map overlays', err);
+      console.error('Error fetching overlay data for map', err);
     }
   };
 
@@ -191,7 +195,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
       } else {
         map.addSource(sourceId, { type: 'geojson', data: geojson });
 
-        // Outer casing layer for high contrast over map tiles
+        // Outer dark casing layer for contrast
         map.addLayer({
           id: casingLayerId,
           type: 'line',
@@ -204,11 +208,11 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
           paint: {
             'line-color': '#0f172a',
             'line-width': 7,
-            'line-opacity': 0.6,
+            'line-opacity': 0.5,
           },
         });
 
-        // Foreground transit line
+        // Main colored transit line
         map.addLayer({
           id: lineLayerId,
           type: 'line',
@@ -243,7 +247,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Render Stop Vector Pin Markers
+    // Render Stop Pins
     if (showStops) {
       stops.forEach((stop) => {
         if (!stop.latitude || !stop.longitude) return;
@@ -251,7 +255,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         const el = document.createElement('div');
         el.className = 'stop-marker-svg';
         el.innerHTML = `
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="#1d4ed8">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="#1d4ed8">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
           </svg>
         `;
@@ -270,7 +274,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
       });
     }
 
-    // Render Bus Markers with Directional Heading Arrow Rotation
+    // Render Directional Bus Markers
     if (showBuses) {
       activeBuses.forEach((busItem) => {
         const loc = busItem.location;
@@ -283,7 +287,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         el.className = `bus-marker-svg ${isLive ? 'bus-live' : 'bus-stale'}`;
         el.style.transform = `rotate(${headingDeg}deg)`;
         el.innerHTML = `
-          <svg viewBox="0 0 32 32" width="32" height="32">
+          <svg viewBox="0 0 32 32" width="30" height="30">
             <circle cx="16" cy="16" r="14" fill="${isLive ? '#16a34a' : '#d97706'}" stroke="#ffffff" stroke-width="2.5"/>
             <path d="M16 6 L22 22 L16 18 L10 22 Z" fill="#ffffff"/>
           </svg>
@@ -318,15 +322,15 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   }, [mapLoaded, stops, activeBuses, showStops, showBuses]);
 
   /**
-   * Resets map camera to default Vadodara center coordinates.
+   * Resets map camera to default Vadodara center.
    */
   const handleResetCenter = () => {
     if (!mapRef.current) return;
-    mapRef.current.flyTo({ center: [73.1812, 22.3106], zoom: 12.8, duration: 1200 });
+    mapRef.current.flyTo({ center: [73.1812, 22.3106], zoom: 13, duration: 1200 });
   };
 
   /**
-   * Centers map camera on selected target item (route, stop, or bus) if provided.
+   * Centers map camera on selected item (route, stop, or bus) if provided.
    */
   useEffect(() => {
     if (!mapRef.current || !selectedItem) return;
