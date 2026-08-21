@@ -95,32 +95,42 @@ export default function StopDetail({
           <div className="empty-state">No buses currently approaching this stop.</div>
         ) : (
           <div className="card-list">
-            {arrivals.map((item, idx) => (
-              <div
-                key={idx}
-                className="eta-display-card card-hover"
-                onClick={() => onSelectBus && onSelectBus({ id: item.bus_id, registration_number: item.registration_number, fleet_number: item.fleet_number })}
-              >
-                <div className="eta-card-top">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="route-code-badge">{item.route_code}</span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.fleet_number}</span>
-                  </div>
-                  <StatusBadge type={item.source} />
-                </div>
+            {arrivals.map((item, idx) => {
+              const minutes = item.eta_minutes !== undefined 
+                ? item.eta_minutes 
+                : Math.max(0, Math.round((new Date(item.eta) - new Date()) / 60000));
+              const displayRouteCode = item.route_code || `R-${item.route_id}`;
+              const displayBusLabel = item.fleet_number || item.registration_number || `Bus #${item.bus_id}`;
 
-                <div className="eta-card-body" style={{ padding: '10px 14px' }}>
-                  <div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{item.route_name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{item.registration_number}</div>
+              return (
+                <div
+                  key={idx}
+                  className="eta-display-card card-hover"
+                  onClick={() => onSelectBus && onSelectBus({ id: item.bus_id, registration_number: item.registration_number, fleet_number: item.fleet_number })}
+                >
+                  <div className="eta-card-top">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="route-code-badge">{displayRouteCode}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{displayBusLabel}</span>
+                    </div>
+                    <StatusBadge type={item.source} />
                   </div>
-                  <div className="eta-digit-container">
-                    <span className="eta-big-val" style={{ fontSize: '1.8rem' }}>~{item.eta_minutes}</span>
-                    <span className="eta-min-unit">MIN</span>
+
+                  <div className="eta-card-body" style={{ padding: '10px 14px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{item.route_name || 'Approaching Bus'}</div>
+                      {item.registration_number && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{item.registration_number}</div>
+                      )}
+                    </div>
+                    <div className="eta-digit-container">
+                      <span className="eta-big-val" style={{ fontSize: '1.8rem' }}>~{minutes}</span>
+                      <span className="eta-min-unit">MIN</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

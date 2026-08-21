@@ -280,7 +280,8 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         const loc = busItem.location;
         if (!loc || !loc.latitude || !loc.longitude) return;
 
-        const isLive = loc.status === 'live';
+        const statusLabel = (loc.status || 'live').toUpperCase();
+        const isLive = statusLabel === 'LIVE';
         const headingDeg = loc.heading || 0;
 
         const el = document.createElement('div');
@@ -305,7 +306,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
               `<div style="font-family: sans-serif; font-size: 0.85rem;">
                 <strong style="color: #0f172a;">${busItem.fleet_number || 'Bus'}</strong><br/>
                 <span style="color: #64748b;">${busItem.registration_number}</span><br/>
-                Status: <strong style="color: ${isLive ? '#16a34a' : '#d97706'};">${loc.status.toUpperCase()}</strong><br/>
+                Status: <strong style="color: ${isLive ? '#16a34a' : '#d97706'};">${statusLabel}</strong><br/>
                 Speed: <strong>${loc.speed || 0} km/h</strong> • Heading: ${headingDeg}°
               </div>`
             )
