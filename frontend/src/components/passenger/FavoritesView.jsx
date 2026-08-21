@@ -4,6 +4,7 @@ import { fetchRoutes, fetchStops } from '../../services/api';
 
 /**
  * FavoritesView component displaying passenger's saved favorite routes and stops.
+ * 
  * @param {Object} props - FavoritesView props.
  * @param {Array<number|string>} props.favoriteRouteIds - Saved favorite route IDs.
  * @param {Array<number|string>} props.favoriteStopIds - Saved favorite stop IDs.
@@ -60,17 +61,17 @@ export default function FavoritesView({
       {loading ? (
         <div className="loading-state">Loading saved favorites...</div>
       ) : totalFavs === 0 ? (
-        <div className="empty-state fav-empty">
-          <Star size={40} className="empty-icon" />
+        <div className="empty-state">
+          <Star size={36} className="empty-icon" />
           <h3>No Favorites Saved Yet</h3>
-          <p>Tap the star icon on any route or stop to save it here for quick tracking.</p>
+          <p style={{ marginTop: '4px' }}>Tap the star icon on any route or stop card to save it here for quick tracking.</p>
         </div>
       ) : (
-        <div className="favorites-content">
+        <div className="favorites-content" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {favRoutes.length > 0 && (
             <div className="fav-section">
-              <h3 className="section-title flex-title">
-                <Route size={18} />
+              <h3 className="section-title" style={{ fontSize: '0.95rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Route size={16} />
                 <span>Saved Routes ({favRoutes.length})</span>
               </h3>
               <div className="card-list">
@@ -89,7 +90,7 @@ export default function FavoritesView({
                           e.stopPropagation();
                           onToggleFavoriteRoute && onToggleFavoriteRoute(route.id);
                         }}
-                        title="Remove from favorites"
+                        title="Remove from saved"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -98,8 +99,8 @@ export default function FavoritesView({
                       <h4 className="route-name">{route.name}</h4>
                     </div>
                     <div className="route-card-footer">
-                      <span className="route-action-text">View Route Details</span>
-                      <ChevronRight size={18} className="route-arrow" />
+                      <span>View Route Details</span>
+                      <ChevronRight size={17} className="route-arrow" />
                     </div>
                   </div>
                 ))}
@@ -109,8 +110,8 @@ export default function FavoritesView({
 
           {favStops.length > 0 && (
             <div className="fav-section">
-              <h3 className="section-title flex-title">
-                <MapPin size={18} />
+              <h3 className="section-title" style={{ fontSize: '0.95rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={16} />
                 <span>Saved Stops ({favStops.length})</span>
               </h3>
               <div className="card-list">
@@ -122,7 +123,7 @@ export default function FavoritesView({
                   >
                     <div className="stop-card-main">
                       <div className="stop-icon-wrapper">
-                        <MapPin size={20} />
+                        <MapPin size={18} />
                       </div>
                       <div className="stop-info">
                         <h4 className="stop-name">{stop.name}</h4>
@@ -136,11 +137,11 @@ export default function FavoritesView({
                           e.stopPropagation();
                           onToggleFavoriteStop && onToggleFavoriteStop(stop.id);
                         }}
-                        title="Remove from favorites"
+                        title="Remove from saved"
                       >
                         <Trash2 size={16} />
                       </button>
-                      <ChevronRight size={18} className="route-arrow" />
+                      <ChevronRight size={17} className="route-arrow" />
                     </div>
                   </div>
                 ))}

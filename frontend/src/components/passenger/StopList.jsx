@@ -3,11 +3,12 @@ import { Search, MapPin, Navigation, Star, ChevronRight } from 'lucide-react';
 import { fetchStops, fetchNearbyStops } from '../../services/api';
 
 /**
- * StopList component for stop browsing, searching, and GPS nearby stop discovery.
+ * StopList component for bus stop browsing, search, and GPS nearby stop calculation.
+ * 
  * @param {Object} props - StopList props.
  * @param {Function} props.onSelectStop - Callback when a stop card is tapped.
- * @param {Array<number|string>} props.favoriteStopIds - List of saved favorite stop IDs.
- * @param {Function} props.onToggleFavorite - Callback to toggle favorite stop state.
+ * @param {Array<number|string>} props.favoriteStopIds - Saved favorite stop IDs.
+ * @param {Function} props.onToggleFavorite - Callback to toggle favorite state.
  * @returns {JSX.Element} Rendered stops view.
  */
 export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleFavorite }) {
@@ -39,7 +40,7 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
   }, []);
 
   /**
-   * Requests user's GPS geolocation to find nearby stops within chosen radius.
+   * Requests device GPS geolocation to rank closest bus stops within chosen radius.
    * @param {number} [targetRadius] - Search radius in km.
    */
   const handleFindNearby = (targetRadius = radiusKm) => {
@@ -63,16 +64,16 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
           setIsLocating(false);
         }
       },
-      (err) => {
+      () => {
         setIsLocating(false);
-        setLocationError('Could not obtain location. Showing default Vadodara stops.');
+        setLocationError('Could not obtain location. Displaying all Vadodara stops.');
       },
       { timeout: 8000, enableHighAccuracy: true }
     );
   };
 
   /**
-   * Updates radius selection and re-queries nearby stops if location is active.
+   * Updates radius chip selection and re-fetches nearby stops if GPS location is active.
    * @param {number} r - Radius in kilometers.
    */
   const handleRadiusChange = (r) => {
@@ -83,7 +84,7 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
   };
 
   /**
-   * Clears search input and returns to default stop listing.
+   * Resets search input and location filters back to full stop list.
    */
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -94,7 +95,7 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
 
   /**
    * Filters stops list based on user search query matching stop name.
-   * @returns {Array} Filtered stop list.
+   * @returns {Array} Filtered stops list.
    */
   const getFilteredStops = () => {
     if (!searchQuery.trim()) return stops;
@@ -108,12 +109,12 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
     <div className="passenger-view stop-list-view">
       <div className="view-header">
         <h2 className="view-title">Vadodara Bus Stops</h2>
-        <p className="view-subtitle">Browse stops, search by name, or locate nearby stops</p>
+        <p className="view-subtitle">Search stops or use GPS to locate nearest bus stops</p>
       </div>
 
       <div className="nearby-banner">
         <div className="nearby-text">
-          <Navigation className="nearby-icon" size={20} />
+          <Navigation className="nearby-icon" size={18} />
           <div>
             <h4 className="nearby-title">Nearby Bus Stops</h4>
             <p className="nearby-desc">Use GPS location to rank closest stops</p>
@@ -125,12 +126,12 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
           onClick={() => handleFindNearby(radiusKm)}
           disabled={isLocating}
         >
-          {isLocating ? 'Locating...' : 'Use My GPS'}
+          {isLocating ? 'Locating...' : 'Use GPS'}
         </button>
       </div>
 
       <div className="radius-selector-bar">
-        <span className="radius-label">Distance Radius:</span>
+        <span className="radius-label">Radius:</span>
         {[1, 3, 5, 10].map((r) => (
           <button
             key={r}
@@ -145,8 +146,8 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
 
       {locationError && <div className="notice-banner warning-notice">{locationError}</div>}
       {userCoords && (
-        <div className="notice-banner success-notice flex-between">
-          <span>Stops within {radiusKm} km of your GPS location</span>
+        <div className="notice-banner success-notice flex-notice" style={{ justifyContent: 'space-between' }}>
+          <span>Stops within {radiusKm} km of your position</span>
           <button type="button" className="text-link-btn" onClick={handleClearSearch}>Reset</button>
         </div>
       )}
@@ -178,7 +179,7 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
           <div className="empty-state">
             <p>No stops found matching "{searchQuery}"</p>
             <button type="button" className="action-btn primary-action margin-top-sm" onClick={handleClearSearch}>
-              Reset Search & Filters
+              Reset Filters
             </button>
           </div>
         ) : (
@@ -192,7 +193,7 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
               >
                 <div className="stop-card-main">
                   <div className="stop-icon-wrapper">
-                    <MapPin size={20} />
+                    <MapPin size={18} />
                   </div>
                   <div className="stop-info">
                     <h3 className="stop-name">{stop.name}</h3>
@@ -210,11 +211,11 @@ export default function StopList({ onSelectStop, favoriteStopIds = [], onToggleF
                       e.stopPropagation();
                       if (onToggleFavorite) onToggleFavorite(stop.id);
                     }}
-                    title={isFav ? 'Remove favorite' : 'Add favorite'}
+                    title={isFav ? 'Remove favorite' : 'Save favorite'}
                   >
                     <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
                   </button>
-                  <ChevronRight size={18} className="route-arrow" />
+                  <ChevronRight size={17} className="route-arrow" />
                 </div>
               </div>
             );

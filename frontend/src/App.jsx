@@ -1,110 +1,3 @@
-<<<<<<< HEAD
-import { useState } from 'react';
-import { DriverApp } from './components/Driver/DriverApp';
-import './App.css';
-
-/**
- * Root Application Component for VadTransit Frontend.
- * Provides view switching between Driver Portal and future Admin Portal.
- */
-function App() {
-  const [currentPortal, setCurrentPortal] = useState('driver');
-
-  /**
-   * Switches the active portal view.
-   * @param {string} portal - Selected portal ('driver' or 'admin').
-   */
-  const handlePortalSwitch = (portal) => {
-    setCurrentPortal(portal);
-  };
-
-  return (
-    <div className="app-root">
-      <nav className="portal-selector" style={styles.navBar}>
-        <span style={styles.brand}>VadTransit</span>
-        <div style={styles.navButtons}>
-          <button
-            type="button"
-            style={{
-              ...styles.navBtn,
-              ...(currentPortal === 'driver' ? styles.activeNavBtn : {}),
-            }}
-            onClick={() => handlePortalSwitch('driver')}
-          >
-            Driver Portal
-          </button>
-          <button
-            type="button"
-            style={{
-              ...styles.navBtn,
-              ...(currentPortal === 'admin' ? styles.activeNavBtn : {}),
-            }}
-            onClick={() => handlePortalSwitch('admin')}
-          >
-            Admin Portal
-          </button>
-        </div>
-      </nav>
-
-      {currentPortal === 'driver' && <DriverApp />}
-
-      {currentPortal === 'admin' && (
-        <div style={styles.adminPlaceholder}>
-          <div className="driver-card" style={{ maxWidth: '600px', margin: '40px auto' }}>
-            <h2>Admin Portal</h2>
-            <p style={{ color: '#94a3b8' }}>
-              Admin dashboard foundation ready for implementation.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const styles = {
-  navBar: {
-    display: 'flex',
-    justify: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#0f172a',
-    borderBottom: '1px solid #334155',
-    padding: '12px 20px',
-    color: '#ffffff',
-  },
-  brand: {
-    fontWeight: 'bold',
-    fontSize: '1.2rem',
-    color: '#38bdf8',
-  },
-  navButtons: {
-    display: 'flex',
-    gap: '10px',
-  },
-  navBtn: {
-    backgroundColor: 'transparent',
-    color: '#94a3b8',
-    border: '1px solid #334155',
-    borderRadius: '6px',
-    padding: '8px 16px',
-    fontSize: '0.9rem',
-    cursor: 'pointer',
-    fontWeight: '500',
-  },
-  activeNavBtn: {
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
-    borderColor: '#2563eb',
-  },
-  adminPlaceholder: {
-    backgroundColor: '#0f172a',
-    minHeight: 'calc(100vh - 60px)',
-    padding: '20px',
-  },
-};
-
-export default App;
-=======
 import React, { useState, useEffect } from 'react';
 import Header from './components/common/Header';
 import BottomNav from './components/common/BottomNav';
@@ -128,8 +21,9 @@ import {
 
 /**
  * Root Application Component for VadTransit Passenger Frontend.
- * Manages mobile view tab switching, route/stop/bus detail navigation, local favorites state, and service alert counters.
- * @returns {JSX.Element} The rendered React app layout.
+ * Manages mobile and desktop views, tab navigation, detail overlays, local favorites, and map focus.
+ * 
+ * @returns {JSX.Element} The rendered VadTransit application layout.
  */
 export default function App() {
   const [activeTab, setActiveTab] = useState('routes');
@@ -148,7 +42,7 @@ export default function App() {
   const [favoriteStopIds, setFavoriteStopIds] = useState([]);
 
   /**
-   * Initializes stored favorites and fetches initial routes and active alert count.
+   * Initializes stored local favorites and fetches initial routes and active service alert counts.
    */
   const loadInitialData = async () => {
     setFavoriteRouteIds(getLocalFavoriteRoutes());
@@ -169,7 +63,7 @@ export default function App() {
   }, []);
 
   /**
-   * Resets active detail overlays when changing primary bottom nav tabs.
+   * Resets active detail overlays when changing primary navigation tabs.
    * @param {string} tabKey - Target tab identifier.
    */
   const handleTabChange = (tabKey) => {
@@ -235,7 +129,10 @@ export default function App() {
         <RouteDetail
           route={selectedRoute}
           onBack={() => setSelectedRoute(null)}
-          onSelectStop={(stop) => setSelectedStop(stop)}
+          onSelectStop={(stop) => {
+            setSelectedStop(stop);
+            setSelectedMapItem(stop);
+          }}
           onViewOnMap={handleViewOnMap}
           favoriteRouteIds={favoriteRouteIds}
           onToggleFavorite={handleToggleFavoriteRoute}
@@ -249,7 +146,10 @@ export default function App() {
         <StopDetail
           stop={selectedStop}
           onBack={() => setSelectedStop(null)}
-          onSelectBus={(bus) => setSelectedBus(bus)}
+          onSelectBus={(bus) => {
+            setSelectedBus(bus);
+            setSelectedMapItem(bus);
+          }}
           onViewOnMap={handleViewOnMap}
           favoriteStopIds={favoriteStopIds}
           onToggleFavorite={handleToggleFavoriteStop}
@@ -257,12 +157,15 @@ export default function App() {
       );
     }
 
-    // 4. Primary Bottom Navigation Tabs
+    // 4. Primary Navigation Tabs
     switch (activeTab) {
       case 'stops':
         return (
           <StopList
-            onSelectStop={(stop) => setSelectedStop(stop)}
+            onSelectStop={(stop) => {
+              setSelectedStop(stop);
+              setSelectedMapItem(stop);
+            }}
             favoriteStopIds={favoriteStopIds}
             onToggleFavorite={handleToggleFavoriteStop}
           />
@@ -271,8 +174,14 @@ export default function App() {
         return (
           <MapView
             selectedItem={selectedMapItem}
-            onSelectStop={(stop) => setSelectedStop(stop)}
-            onSelectBus={(bus) => setSelectedBus(bus)}
+            onSelectStop={(stop) => {
+              setSelectedStop(stop);
+              setSelectedMapItem(stop);
+            }}
+            onSelectBus={(bus) => {
+              setSelectedBus(bus);
+              setSelectedMapItem(bus);
+            }}
           />
         );
       case 'favorites':
@@ -282,8 +191,14 @@ export default function App() {
             favoriteStopIds={favoriteStopIds}
             onToggleFavoriteRoute={handleToggleFavoriteRoute}
             onToggleFavoriteStop={handleToggleFavoriteStop}
-            onSelectRoute={(route) => setSelectedRoute(route)}
-            onSelectStop={(stop) => setSelectedStop(stop)}
+            onSelectRoute={(route) => {
+              setSelectedRoute(route);
+              setSelectedMapItem(route);
+            }}
+            onSelectStop={(stop) => {
+              setSelectedStop(stop);
+              setSelectedMapItem(stop);
+            }}
           />
         );
       case 'alerts':
@@ -297,7 +212,14 @@ export default function App() {
         return (
           <RouteList
             routes={routes}
-            onSelectRoute={(route) => setSelectedRoute(route)}
+            onSelectRoute={(route) => {
+              setSelectedRoute(route);
+              setSelectedMapItem(route);
+            }}
+            onSelectStop={(stop) => {
+              setSelectedStop(stop);
+              setSelectedMapItem(stop);
+            }}
             favoriteRouteIds={favoriteRouteIds}
             onToggleFavorite={handleToggleFavoriteRoute}
           />
@@ -311,9 +233,31 @@ export default function App() {
         onRefresh={handleRefresh}
         activeAlertCount={alertCount}
         onOpenAlerts={() => handleTabChange('alerts')}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
       />
 
-      <main className="main-content">{renderCurrentView()}</main>
+      {/* Desktop Responsive Split Screen & Mobile Single View */}
+      <main className="main-content">
+        <div className="desktop-layout">
+          <div className="desktop-side-panel">
+            {renderCurrentView()}
+          </div>
+          <div className="desktop-map-viewport">
+            <MapView
+              selectedItem={selectedMapItem}
+              onSelectStop={(stop) => {
+                setSelectedStop(stop);
+                setSelectedMapItem(stop);
+              }}
+              onSelectBus={(bus) => {
+                setSelectedBus(bus);
+                setSelectedMapItem(bus);
+              }}
+            />
+          </div>
+        </div>
+      </main>
 
       <BottomNav
         activeTab={activeTab}
@@ -323,4 +267,3 @@ export default function App() {
     </div>
   );
 }
->>>>>>> 60abaa8dc356b8a2d988ef0551205afb695151ff

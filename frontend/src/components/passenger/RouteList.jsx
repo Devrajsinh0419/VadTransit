@@ -1,26 +1,46 @@
-import React, { useState } from 'react';
-import { Search, ChevronRight, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ChevronRight, Star, MapPin } from 'lucide-react';
+import { fetchStops } from '../../services/api';
 
 /**
- * RouteList component for route discovery, searching, and filtering in Vadodara.
+ * RouteList component providing unified search across bus routes and stops, filter chips, and route details.
+ * 
  * @param {Object} props - Component properties.
  * @param {Array} props.routes - List of available route objects.
- * @param {Function} props.onSelectRoute - Callback when a route card is tapped.
- * @param {Array<number|string>} props.favoriteRouteIds - Array of favorite route IDs.
- * @param {Function} props.onToggleFavorite - Callback function to toggle favorite status.
+ * @param {Function} props.onSelectRoute - Callback when a route is selected.
+ * @param {Function} [props.onSelectStop] - Callback when a stop search result is selected.
+ * @param {Array<number|string>} props.favoriteRouteIds - Saved favorite route IDs.
+ * @param {Function} props.onToggleFavorite - Callback to toggle favorite state.
  * @returns {JSX.Element} Rendered route list component.
  */
 export default function RouteList({
   routes = [],
   onSelectRoute,
+  onSelectStop,
   favoriteRouteIds = [],
   onToggleFavorite,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilterCode, setSelectedFilterCode] = useState('ALL');
+  const [allStops, setAllStops] = useState([]);
 
   /**
-   * Clears current search input and filter chips.
+   * Fetches bus stops for unified instant search results.
+   */
+  useEffect(() => {
+    async function loadAllStops() {
+      try {
+        const data = await fetchStops();
+        setAllStops(data || []);
+      } catch (err) {
+        console.error('Failed loading stops for search', err);
+      }
+    }
+    loadAllStops();
+  }, []);
+
+  /**
+   * Clears search input and resets route filter chip.
    */
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -28,16 +48,14 @@ export default function RouteList({
   };
 
   /**
-   * Filters routes based on search query match against code or name, and optional filter chip.
-   * @returns {Array} Filtered list of routes.
+   * Filters routes based on query string matching route code or name, and active chip filter.
+   * @returns {Array} Filtered routes list.
    */
   const getFilteredRoutes = () => {
     return routes.filter((route) => {
-      // 1. Check chip filter
       if (selectedFilterCode !== 'ALL' && route.route_code !== selectedFilterCode) {
         return false;
       }
-      // 2. Check search input query
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
       const codeMatch = route.route_code && route.route_code.toLowerCase().includes(query);
@@ -46,14 +64,25 @@ export default function RouteList({
     });
   };
 
+  /**
+   * Filters stops matching current search query for unified search results.
+   * @returns {Array} Filtered stops list.
+   */
+  const getFilteredStops = () => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    return allStops.filter((s) => s.name && s.name.toLowerCase().includes(query));
+  };
+
   const filteredRoutes = getFilteredRoutes();
+  const filteredStops = getFilteredStops();
   const availableCodes = Array.from(new Set(routes.map((r) => r.route_code).filter(Boolean)));
 
   return (
     <div className="passenger-view route-list-view">
       <div className="view-header">
         <h2 className="view-title">Vadodara Bus Routes</h2>
-        <p className="view-subtitle">Browse and search active public transport routes</p>
+        <p className="view-subtitle">Search routes and stops or view live bus arrivals</p>
       </div>
 
       <div className="search-bar">
@@ -61,7 +90,7 @@ export default function RouteList({
         <input
           type="text"
           className="search-input"
-          placeholder="Search route by code or name (e.g. R-1, Airport)..."
+          placeholder="Unified search routes & stops (e.g. R-1, Airport, Sayaji Baug)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -70,7 +99,7 @@ export default function RouteList({
             type="button"
             className="clear-search-btn"
             onClick={handleClearSearch}
-            title="Clear filters"
+            title="Clear search"
           >
             ×
           </button>
@@ -84,7 +113,7 @@ export default function RouteList({
             className={`chip-btn ${selectedFilterCode === 'ALL' ? 'chip-active' : ''}`}
             onClick={() => setSelectedFilterCode('ALL')}
           >
-            All Routes
+            All Routes ({routes.length})
           </button>
           {availableCodes.map((code) => (
             <button
@@ -99,12 +128,42 @@ export default function RouteList({
         </div>
       )}
 
+      {/* Unified Search Section: Matching Bus Stops */}
+      {searchQuery.trim() !== '' && filteredStops.length > 0 && (
+        <div className="search-stops-section">
+          <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MapPin size={15} /> Matching Bus Stops ({filteredStops.length})
+          </h3>
+          <div className="card-list" style={{ marginBottom: '16px' }}>
+            {filteredStops.map((stop) => (
+              <div
+                key={stop.id}
+                className="stop-card card-hover"
+                onClick={() => onSelectStop && onSelectStop(stop)}
+              >
+                <div className="stop-card-main">
+                  <div className="stop-icon-wrapper">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <span className="type-badge type-badge-stop">STOP</span>
+                    <h4 className="stop-name" style={{ marginTop: '2px' }}>{stop.name}</h4>
+                  </div>
+                </div>
+                <ChevronRight size={17} className="route-arrow" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Primary Route Cards List */}
       <div className="card-list">
-        {filteredRoutes.length === 0 ? (
+        {filteredRoutes.length === 0 && filteredStops.length === 0 ? (
           <div className="empty-state">
-            <p>No routes found matching "{searchQuery}"</p>
+            <p>No routes or stops found matching "{searchQuery}"</p>
             <button type="button" className="action-btn primary-action margin-top-sm" onClick={handleClearSearch}>
-              Reset Search Filters
+              Reset Filters
             </button>
           </div>
         ) : (
@@ -121,6 +180,7 @@ export default function RouteList({
                 <div className="route-card-header">
                   <div className="route-badge-container">
                     <span className="route-code-badge">{route.route_code || `R-${route.id}`}</span>
+                    <span className="type-badge type-badge-route">ROUTE</span>
                     <span className="route-stop-count">{stopCount} Stops</span>
                   </div>
                   <button
@@ -130,7 +190,7 @@ export default function RouteList({
                       e.stopPropagation();
                       if (onToggleFavorite) onToggleFavorite(route.id);
                     }}
-                    title={isFav ? 'Remove from favorites' : 'Save to favorites'}
+                    title={isFav ? 'Remove from saved' : 'Save route'}
                   >
                     <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
                   </button>
@@ -141,8 +201,8 @@ export default function RouteList({
                 </div>
 
                 <div className="route-card-footer">
-                  <span className="route-action-text">View route stops & ETAs</span>
-                  <ChevronRight size={18} className="route-arrow" />
+                  <span>View Stops Sequence & Live Arrivals</span>
+                  <ChevronRight size={17} className="route-arrow" />
                 </div>
               </div>
             );

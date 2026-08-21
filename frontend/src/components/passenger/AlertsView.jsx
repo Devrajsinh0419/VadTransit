@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Info, BellRing, Calendar } from 'lucide-react';
+import { BellRing, Calendar } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
 import { fetchAlerts } from '../../services/api';
 
 /**
  * AlertsView component displaying active service disruptions, delays, and transit notices.
+ * 
  * @param {Object} props - AlertsView props.
  * @param {Function} [props.onAlertCountChange] - Callback to report total active alert count.
  * @returns {JSX.Element} Rendered alerts view.
@@ -36,9 +37,9 @@ export default function AlertsView({ onAlertCountChange }) {
   }, []);
 
   /**
-   * Formats timestamp date for alert notices.
+   * Formats ISO date timestamp string into human readable alert date/time.
    * @param {string} isoString - Date string.
-   * @returns {string} Human readable date.
+   * @returns {string} Human readable date string.
    */
   const formatDate = (isoString) => {
     if (!isoString) return 'Ongoing';
@@ -63,12 +64,12 @@ export default function AlertsView({ onAlertCountChange }) {
         <div className="empty-state">
           <BellRing size={36} className="empty-icon" />
           <h3>No Active Alerts</h3>
-          <p>All Vadodara transit routes are operating according to schedule.</p>
+          <p style={{ marginTop: '4px' }}>All Vadodara transit routes are operating according to schedule.</p>
         </div>
       ) : (
         <div className="card-list">
           {alerts.map((alert) => (
-            <div key={alert.id} className={`alert-card alert-severity-${alert.severity}`}>
+            <div key={alert.id} className="alert-card">
               <div className="alert-card-header">
                 <StatusBadge type={alert.severity} />
                 <span className="alert-time">

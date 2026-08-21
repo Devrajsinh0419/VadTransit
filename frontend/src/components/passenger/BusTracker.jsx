@@ -6,11 +6,12 @@ import { subscribeBusTracking } from '../../services/websocket';
 
 /**
  * BusTracker component providing real-time WebSocket tracking, telemetry, ETA indicators, and route progress.
+ * 
  * @param {Object} props - BusTracker props.
  * @param {Object} props.bus - Target bus object.
  * @param {Function} props.onBack - Callback to return to previous view.
  * @param {Function} props.onViewOnMap - Callback to locate bus on map.
- * @returns {JSX.Element} Rendered live tracking view.
+ * @returns {JSX.Element|null} Rendered live tracking view.
  */
 export default function BusTracker({ bus, onBack, onViewOnMap }) {
   const [locationData, setLocationData] = useState(null);
@@ -20,7 +21,7 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
   const [isRealtime, setIsRealtime] = useState(false);
 
   /**
-   * Fetches initial GPS location, ETA, and route stops for the bus.
+   * Fetches initial GPS location, calculated ETA, and route stops for the bus.
    */
   const loadBusData = async () => {
     if (!bus || !bus.id) return;
@@ -106,14 +107,14 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
     <div className="passenger-view bus-tracker-view">
       <div className="detail-top-bar">
         <button type="button" className="icon-back-btn" onClick={onBack} title="Back">
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
-        <div className="bus-title-tag">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.92rem' }}>
           <Bus size={18} />
           <span>{bus.fleet_number || `Bus #${bus.id}`}</span>
         </div>
         <button type="button" className="icon-back-btn" onClick={loadBusData} title="Refresh Tracking">
-          <RefreshCw size={18} className={loading ? 'spin-icon' : ''} />
+          <RefreshCw size={17} className={loading ? 'spin-icon' : ''} />
         </button>
       </div>
 
@@ -122,7 +123,7 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
           <div>
             <h2 className="tracker-bus-name">{bus.registration_number || `GJ-06-VT-${bus.id}`}</h2>
             <span className="tracker-fleet">
-              {bus.fleet_number || `Fleet Bus #${bus.id}`} {isRealtime && ' • (Live WebSocket)'}
+              {bus.fleet_number || `Fleet Bus #${bus.id}`} {isRealtime && ' • (WebSocket Connected)'}
             </span>
           </div>
           <StatusBadge type={etaSource} />
@@ -137,11 +138,11 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
             <div className="eta-details">
               <div className="eta-meta-item">
                 <Clock size={14} />
-                <span>Estimated Arrival: {new Date(etaData.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>Estimated Arrival: <strong>{new Date(etaData.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
               </div>
               <div className="eta-meta-item">
                 <ShieldCheck size={14} />
-                <span>ETA Source: <strong>{etaSource.toUpperCase()}</strong></span>
+                <span>Source: <strong>{etaSource.toUpperCase()}</strong></span>
               </div>
             </div>
           </div>
@@ -149,11 +150,11 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
 
         {etaSource !== 'live' && (
           <div className="notice-banner warning-notice flex-notice">
-            <AlertTriangle size={16} />
+            <AlertTriangle size={15} />
             <span>
               {etaSource === 'recent'
-                ? 'Live signal temporarily weak. ETA calculated using recent speed & trajectory.'
-                : 'No recent live updates. Displaying fallback schedule arrival.'}
+                ? 'Live GPS signal interrupted. Using recent bus trajectory.'
+                : 'No recent live updates. Displaying fallback schedule timetable.'}
             </span>
           </div>
         )}
@@ -177,7 +178,7 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
             <Navigation size={20} />
           </div>
           <div className="telemetry-info">
-            <span className="telemetry-label">Heading Direction</span>
+            <span className="telemetry-label">Heading</span>
             <span className="telemetry-value">
               {locationData && locationData.heading !== undefined ? `${locationData.heading}°` : 'N/A'}
             </span>
@@ -189,9 +190,9 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
             <Clock size={20} />
           </div>
           <div className="telemetry-info">
-            <span className="telemetry-label">Last Location Update</span>
+            <span className="telemetry-label">Last GPS Location Fix</span>
             <span className="telemetry-value">
-              {locationData ? formatTime(locationData.recorded_at) : 'Waiting for location signal...'}
+              {locationData ? formatTime(locationData.recorded_at) : 'Waiting for GPS signal...'}
             </span>
           </div>
         </div>
@@ -199,7 +200,7 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
 
       {routeStops.length > 0 && (
         <div className="route-progress-card">
-          <h4 className="section-title">Route Progress</h4>
+          <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Route Progress</h4>
           <div className="progress-bar-container">
             <div className="progress-track" />
             <div className="progress-fill" style={{ width: '45%' }} />
@@ -220,8 +221,8 @@ export default function BusTracker({ bus, onBack, onViewOnMap }) {
           className="action-btn primary-action wide-action"
           onClick={() => onViewOnMap && onViewOnMap({ bus, location: locationData })}
         >
-          <Navigation size={18} />
-          <span>Track Position on Live Map</span>
+          <Navigation size={17} />
+          <span>Track Bus Position on Live Map</span>
         </button>
       </div>
     </div>

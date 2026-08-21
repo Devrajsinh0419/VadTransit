@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "lucide-react": "^1.33.0",
-    "maplibre-gl": "^6.4.1",
+    "maplibre-gl": "^6.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

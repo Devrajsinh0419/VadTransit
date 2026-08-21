@@ -2,15 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { fetchStops, fetchBuses, fetchBusLocation, fetchRoutes } from '../../services/api';
-import { Layers, RotateCcw, MapPin, Bus, Route as RouteIcon } from 'lucide-react';
+import { RotateCcw, MapPin, Bus, Route as RouteIcon } from 'lucide-react';
 
 /**
- * Enhanced MapView component displaying Vadodara map, route polylines, stop markers, and live bus markers.
+ * Enhanced MapView component displaying Vadodara map, route polylines, vector stop markers, and live directional bus markers.
+ * 
  * @param {Object} props - MapView props.
  * @param {Object} [props.selectedItem] - Item object to focus/center on map (route, stop, or bus).
  * @param {Function} [props.onSelectStop] - Callback when a stop marker is clicked.
  * @param {Function} [props.onSelectBus] - Callback when a bus marker is clicked.
- * @returns {JSX.Element} Rendered map view.
+ * @returns {JSX.Element} Rendered map view component.
  */
 export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   const mapContainerRef = useRef(null);
@@ -38,7 +39,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         container: mapContainerRef.current,
         style: 'https://demotiles.maplibre.org/style.json',
         center: [73.1812, 22.3106],
-        zoom: 12.5,
+        zoom: 12.8,
       });
 
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -61,7 +62,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   }, []);
 
   /**
-   * Loads stops, routes, and active bus locations.
+   * Loads stops, routes, and active bus locations from backend services.
    */
   const loadMapData = async () => {
     try {
@@ -95,7 +96,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   }, []);
 
   /**
-   * Renders route polyline paths on the MapLibre map.
+   * Renders dual-casing polyline paths for bus routes on the MapLibre map layer.
    */
   const renderRoutePolylines = () => {
     if (!mapRef.current || !mapLoaded) return;
@@ -103,7 +104,8 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
 
     routes.forEach((route) => {
       const sourceId = `route-source-${route.id}`;
-      const layerId = `route-layer-${route.id}`;
+      const casingLayerId = `route-casing-${route.id}`;
+      const lineLayerId = `route-line-${route.id}`;
 
       if (!route.stops || route.stops.length < 2) return;
 
@@ -129,8 +131,10 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         map.getSource(sourceId).setData(geojson);
       } else {
         map.addSource(sourceId, { type: 'geojson', data: geojson });
+
+        // Outer dark casing layer for high contrast over map tiles
         map.addLayer({
-          id: layerId,
+          id: casingLayerId,
           type: 'line',
           source: sourceId,
           layout: {
@@ -139,9 +143,26 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
             visibility: showRoutes ? 'visible' : 'none',
           },
           paint: {
-            'line-color': route.id === 101 ? '#0ea5e9' : '#10b981',
-            'line-width': 4,
-            'line-opacity': 0.85,
+            'line-color': '#0f172a',
+            'line-width': 7,
+            'line-opacity': 0.6,
+          },
+        });
+
+        // Foreground transit line
+        map.addLayer({
+          id: lineLayerId,
+          type: 'line',
+          source: sourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            visibility: showRoutes ? 'visible' : 'none',
+          },
+          paint: {
+            'line-color': route.id === 101 ? '#1d4ed8' : '#16a34a',
+            'line-width': 4.5,
+            'line-opacity': 0.95,
           },
         });
       }
@@ -153,7 +174,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   }, [mapLoaded, routes, showRoutes]);
 
   /**
-   * Clears and re-renders HTML markers for stops and buses.
+   * Clears and re-renders custom SVG markers for stops and directional buses.
    */
   const renderMarkers = () => {
     if (!mapRef.current || !mapLoaded) return;
@@ -163,14 +184,18 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Render Stop Markers
+    // Render Stop Vector Pin Markers
     if (showStops) {
       stops.forEach((stop) => {
         if (!stop.latitude || !stop.longitude) return;
 
         const el = document.createElement('div');
-        el.className = 'custom-map-marker stop-marker';
-        el.innerHTML = '📍';
+        el.className = 'stop-marker-svg';
+        el.innerHTML = `
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="#1d4ed8">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+        `;
         el.title = stop.name;
 
         el.addEventListener('click', () => {
@@ -186,16 +211,24 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
       });
     }
 
-    // Render Bus Markers
+    // Render Bus Markers with Directional Heading Arrow Rotation
     if (showBuses) {
       activeBuses.forEach((busItem) => {
         const loc = busItem.location;
         if (!loc || !loc.latitude || !loc.longitude) return;
 
         const isLive = loc.status === 'live';
+        const headingDeg = loc.heading || 0;
+
         const el = document.createElement('div');
-        el.className = `custom-map-marker bus-marker ${isLive ? 'bus-live' : 'bus-stale'}`;
-        el.innerHTML = '🚌';
+        el.className = `bus-marker-svg ${isLive ? 'bus-live' : 'bus-stale'}`;
+        el.style.transform = `rotate(${headingDeg}deg)`;
+        el.innerHTML = `
+          <svg viewBox="0 0 32 32" width="32" height="32">
+            <circle cx="16" cy="16" r="14" fill="${isLive ? '#16a34a' : '#d97706'}" stroke="#ffffff" stroke-width="2.5"/>
+            <path d="M16 6 L22 22 L16 18 L10 22 Z" fill="#ffffff"/>
+          </svg>
+        `;
         el.title = `${busItem.fleet_number || busItem.registration_number}`;
 
         el.addEventListener('click', () => {
@@ -206,7 +239,12 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
           .setLngLat([loc.longitude, loc.latitude])
           .setPopup(
             new maplibregl.Popup({ offset: 25 }).setHTML(
-              `<div><strong>${busItem.fleet_number || 'Bus'}</strong><br/>${busItem.registration_number}<br/>Status: <em>${loc.status}</em><br/>Speed: <strong>${loc.speed || 0} km/h</strong></div>`
+              `<div style="font-family: sans-serif; font-size: 0.85rem;">
+                <strong style="color: #0f172a;">${busItem.fleet_number || 'Bus'}</strong><br/>
+                <span style="color: #64748b;">${busItem.registration_number}</span><br/>
+                Status: <strong style="color: ${isLive ? '#16a34a' : '#d97706'};">${loc.status.toUpperCase()}</strong><br/>
+                Speed: <strong>${loc.speed || 0} km/h</strong> • Heading: ${headingDeg}°
+              </div>`
             )
           )
           .addTo(map);
@@ -221,15 +259,15 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   }, [mapLoaded, stops, activeBuses, showStops, showBuses]);
 
   /**
-   * Resets map view to default Vadodara center coordinates.
+   * Resets map camera to default Vadodara center coordinates.
    */
   const handleResetCenter = () => {
     if (!mapRef.current) return;
-    mapRef.current.flyTo({ center: [73.1812, 22.3106], zoom: 12.5, duration: 1200 });
+    mapRef.current.flyTo({ center: [73.1812, 22.3106], zoom: 12.8, duration: 1200 });
   };
 
   /**
-   * Centers map camera on selected target item if provided.
+   * Centers map camera on selected target item (route, stop, or bus) if provided.
    */
   useEffect(() => {
     if (!mapRef.current || !selectedItem) return;
@@ -251,13 +289,13 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
     <div className="passenger-view map-view-container">
       <div className="map-view-header">
         <div className="map-title-row">
-          <h2 className="view-title">Vadodara Live Transit Map</h2>
+          <h2 className="view-title" style={{ fontSize: '1.1rem' }}>Vadodara Transit Map</h2>
           <div className="map-header-actions">
             <button
               type="button"
               className="icon-back-btn"
               onClick={handleResetCenter}
-              title="Reset Map Center"
+              title="Reset Map View"
             >
               <RotateCcw size={16} />
             </button>
@@ -290,19 +328,19 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
       </div>
 
       <div className="map-frame" ref={mapContainerRef}>
-        {!mapLoaded && <div className="map-loading-overlay">Loading Vadodara Transit Map...</div>}
+        {!mapLoaded && <div className="map-loading-overlay">Initializing Vadodara Transit Map...</div>}
       </div>
 
       <div className="map-controls-bar">
         <div className="map-legend">
           <span className="legend-item">
-            <span className="legend-icon stop-icon">📍</span> Bus Stop
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d4ed8"><circle cx="12" cy="12" r="8"/></svg> Stop
           </span>
           <span className="legend-item">
-            <span className="legend-icon bus-live-icon">🚌</span> Live Tracked
+            <svg width="14" height="14" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#16a34a"/></svg> Live Bus
           </span>
           <span className="legend-item">
-            <span className="legend-icon bus-stale-icon">🚌</span> Stale Location
+            <svg width="14" height="14" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#d97706"/></svg> Recent / Stale
           </span>
         </div>
       </div>

@@ -4,15 +4,16 @@ import StatusBadge from '../common/StatusBadge';
 import { fetchRouteEtas } from '../../services/api';
 
 /**
- * RouteDetail component showing ordered stops, distance, estimated travel time, and live bus ETAs.
+ * RouteDetail component showing ordered stops timeline, distances, estimated travel times, and operating buses.
+ * 
  * @param {Object} props - RouteDetail props.
  * @param {Object} props.route - Route data object.
  * @param {Function} props.onBack - Callback to return to route list.
- * @param {Function} props.onSelectStop - Callback to open stop details.
+ * @param {Function} props.onSelectStop - Callback to select a stop.
  * @param {Function} props.onViewOnMap - Callback to view route on map.
- * @param {Array<number|string>} props.favoriteRouteIds - Array of favorite route IDs.
+ * @param {Array<number|string>} props.favoriteRouteIds - Saved favorite route IDs.
  * @param {Function} props.onToggleFavorite - Callback to toggle favorite state.
- * @returns {JSX.Element} Rendered detail view.
+ * @returns {JSX.Element|null} Rendered route detail view.
  */
 export default function RouteDetail({
   route,
@@ -25,7 +26,7 @@ export default function RouteDetail({
   const [etas, setEtas] = useState([]);
 
   /**
-   * Loads active ETAs for buses operating on this route.
+   * Loads active ETAs for buses currently operating on this route.
    */
   const loadEtas = async () => {
     if (!route || !route.id) return;
@@ -50,16 +51,16 @@ export default function RouteDetail({
     <div className="passenger-view route-detail-view">
       <div className="detail-top-bar">
         <button type="button" className="icon-back-btn" onClick={onBack} title="Back to Routes">
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
         <span className="detail-route-badge">{route.route_code || `R-${route.id}`}</span>
         <button
           type="button"
           className={`fav-btn ${isFav ? 'fav-active' : ''}`}
           onClick={() => onToggleFavorite && onToggleFavorite(route.id)}
-          title={isFav ? 'Remove favorite' : 'Add favorite'}
+          title={isFav ? 'Remove favorite' : 'Save favorite'}
         >
-          <Star size={20} fill={isFav ? 'currentColor' : 'none'} />
+          <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
         </button>
       </div>
 
@@ -72,24 +73,34 @@ export default function RouteDetail({
             onClick={() => onViewOnMap && onViewOnMap(route)}
           >
             <Map size={16} />
-            <span>View on Map</span>
+            <span>View Route on Map</span>
           </button>
         </div>
       </div>
 
       {etas.length > 0 && (
         <div className="active-buses-section">
-          <h3 className="section-title">Buses Currently Operating</h3>
-          <div className="eta-cards-row">
+          <h3 className="section-title" style={{ fontSize: '0.95rem', marginBottom: '8px' }}>
+            Operating Buses ({etas.length})
+          </h3>
+          <div className="card-list">
             {etas.map((etaItem, idx) => (
-              <div key={idx} className="eta-summary-card">
-                <div className="eta-card-header">
-                  <span className="bus-label">Bus #{etaItem.bus_id}</span>
+              <div key={idx} className="eta-display-card" style={{ padding: '12px 14px' }}>
+                <div className="eta-card-top">
+                  <span className="bus-meta-title">Bus #{etaItem.bus_id}</span>
                   <StatusBadge type={etaItem.source} />
                 </div>
-                <div className="eta-card-time">
-                  <Clock size={16} />
-                  <span>ETA: ~{etaItem.eta_minutes || 5} min</span>
+                <div className="eta-card-body" style={{ padding: '8px 12px' }}>
+                  <div className="eta-digit-container">
+                    <span className="eta-big-val" style={{ fontSize: '1.6rem' }}>~{etaItem.eta_minutes || 5}</span>
+                    <span className="eta-min-unit">MIN</span>
+                  </div>
+                  <div className="eta-time-breakdown">
+                    <div className="eta-sub-item">
+                      <Clock size={13} style={{ display: 'inline', marginRight: '4px' }} />
+                      <span>ETA: <strong>{new Date(etaItem.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -98,7 +109,9 @@ export default function RouteDetail({
       )}
 
       <div className="stops-timeline-section">
-        <h3 className="section-title">Route Stops ({orderedStops.length})</h3>
+        <h3 className="section-title" style={{ fontSize: '0.95rem', marginBottom: '10px' }}>
+          Stops Sequence ({orderedStops.length})
+        </h3>
 
         <div className="timeline-container">
           {orderedStops.map((item, index) => {
@@ -126,7 +139,7 @@ export default function RouteDetail({
                     <div className="stop-metrics">
                       <span>{item.distance_from_previous_stop} km</span>
                       <span className="metric-dot">•</span>
-                      <span>~{item.expected_travel_time} min travel</span>
+                      <span>~{item.expected_travel_time} min travel time</span>
                     </div>
                   )}
                 </div>
