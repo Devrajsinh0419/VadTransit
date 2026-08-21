@@ -58,3 +58,33 @@ class WebSocketTests(TransactionTestCase):
         self.assertEqual(received_msg['speed'], 30.0)
 
         await communicator.disconnect()
+
+    async def test_admin_fleet_websocket_broadcast(self):
+        """Tests connecting to /ws/admin/fleet/ and receiving real-time fleet broadcast updates."""
+        communicator = WebsocketCommunicator(application, "/ws/admin/fleet/")
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+
+        fleet_payload = {
+            "bus_id": self.bus.id,
+            "status": "live",
+            "fleet_number": "BUS-55"
+        }
+
+        await channel_layer.group_send(
+            "admin_fleet",
+            {
+                "type": "fleet_update",
+                "data": fleet_payload
+            }
+        )
+
+        received_msg = await communicator.receive_json_from()
+        self.assertEqual(received_msg['bus_id'], self.bus.id)
+        self.assertEqual(received_msg['status'], 'live')
+
+        await communicator.disconnect()
+

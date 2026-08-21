@@ -40,6 +40,12 @@ class ShiftStartSerializer(serializers.Serializer):
         queryset=Route.objects.filter(is_active=True), source='route'
     )
 
+    def validate_driver_id(self, driver):
+        """Validates that the selected driver does not already have an active shift."""
+        if Shift.objects.filter(driver=driver, is_active=True).exists():
+            raise serializers.ValidationError("This driver already has an active shift.")
+        return driver
+
     def validate_bus_id(self, bus):
         """Validates that the selected bus does not already have an active shift."""
         if Shift.objects.filter(bus=bus, is_active=True).exists():
@@ -81,11 +87,20 @@ class BusLocationCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        """Validates that the bus has an active shift before accepting location data."""
+        """Validates active shift requirement and ensures timezone-aware valid recorded_at timestamp."""
         bus = data.get('bus')
         if not Shift.objects.filter(bus=bus, is_active=True).exists():
             raise serializers.ValidationError({"bus_id": "Location updates are rejected for buses without an active shift."})
+
+        now = timezone.now()
+        recorded_at = data.get('recorded_at')
+        if not recorded_at:
+            data['recorded_at'] = now
+        elif recorded_at > now:
+            data['recorded_at'] = now
+
         return data
+
 
 
 class BusLocationSerializer(serializers.ModelSerializer):

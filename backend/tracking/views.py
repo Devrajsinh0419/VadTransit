@@ -115,6 +115,36 @@ class BusLocationCreateView(APIView):
                         "data": update_payload
                     }
                 )
+
+                # Broadcast update to admin fleet dashboard channel
+                active_shift = Shift.objects.filter(bus=location.bus, is_active=True).first()
+                fleet_payload = {
+                    "bus_id": location.bus.id,
+                    "registration_number": location.bus.registration_number,
+                    "fleet_number": location.bus.fleet_number,
+                    "is_active": location.bus.is_active,
+                    "status": "live",
+                    "shift_id": active_shift.id if active_shift else None,
+                    "driver_id": active_shift.driver.id if active_shift else None,
+                    "driver_name": active_shift.driver.name if active_shift else None,
+                    "route_id": active_shift.route.id if active_shift else None,
+                    "route_name": active_shift.route.name if active_shift else None,
+                    "route_code": active_shift.route.route_code if active_shift else None,
+                    "last_location": {
+                        "latitude": float(location.latitude),
+                        "longitude": float(location.longitude),
+                        "recorded_at": location.recorded_at.isoformat(),
+                        "speed": location.speed,
+                        "heading": location.heading,
+                    }
+                }
+                async_to_sync(channel_layer.group_send)(
+                    "admin_fleet",
+                    {
+                        "type": "fleet_update",
+                        "data": fleet_payload
+                    }
+                )
         except Exception:
             # Prevent WebSocket broadcast failure from breaking HTTP location ingestion
             pass
@@ -198,11 +228,12 @@ class RouteETAsView(APIView):
     """
     API view for retrieving ETAs of active buses operating on a specific route.
     Endpoint: GET /api/routes/{route_id}/etas/
+    Optional Query Parameters: stop_id
     """
     permission_classes = [AllowAny]
 
     def get(self, request, route_id):
-        """Calculates and returns ETAs for all active buses on the specified route."""
+        """Calculates and returns ETAs for active buses on the route, filtered by optional stop_id."""
         try:
             route = Route.objects.get(id=route_id)
         except Route.DoesNotExist:
@@ -210,6 +241,10 @@ class RouteETAsView(APIView):
 
         active_shifts = Shift.objects.filter(route=route, is_active=True)
         route_stops = RouteStop.objects.filter(route=route).order_by('stop_order')
+
+        stop_id = request.query_params.get('stop_id')
+        if stop_id:
+            route_stops = route_stops.filter(stop_id=stop_id)
 
         etas = []
         for shift in active_shifts:
@@ -219,6 +254,7 @@ class RouteETAsView(APIView):
                     etas.append(eta_data)
 
         return Response(ETAResponseSerializer(etas, many=True).data, status=status.HTTP_200_OK)
+
 
 
 class StopArrivalsView(APIView):

@@ -60,7 +60,7 @@
 -   [x] Handle stale location data
 -   [ ] Handle delayed location updates
 -   [ ] Test ETA behaviour during network loss
--   [ ] Verify time and timestamps across the system
+-   [x] Verify time and timestamps across the system
 
 ## Real-Time Tracking
 
@@ -69,9 +69,10 @@
 -   [x] Send current bus information to passengers
 -   [ ] Update bus position on the map
 -   [x] Update ETA when new location data arrives
--   [ ] Detect unavailable/offline buses
+-   [x] Detect unavailable/offline buses
 -   [ ] Test frequent location updates
 -   [ ] Test reconnect behaviour
+
 
 ## Admin
 

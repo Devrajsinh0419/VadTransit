@@ -66,7 +66,7 @@ class ETAService:
         latest_loc = BusLocation.objects.filter(bus=bus).order_by('-recorded_at').first()
 
         if latest_loc:
-            age_seconds = (now - latest_loc.recorded_at).total_seconds()
+            age_seconds = max(0.0, (now - latest_loc.recorded_at).total_seconds())
             distance_km = calculate_haversine_distance(
                 latest_loc.latitude, latest_loc.longitude,
                 target_stop.latitude, target_stop.longitude
