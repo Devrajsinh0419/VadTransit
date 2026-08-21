@@ -1,0 +1,140 @@
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Star, Map, Clock } from 'lucide-react';
+import StatusBadge from '../common/StatusBadge';
+import { fetchRouteEtas } from '../../services/api';
+
+/**
+ * RouteDetail component showing ordered stops, distance, estimated travel time, and live bus ETAs.
+ * @param {Object} props - RouteDetail props.
+ * @param {Object} props.route - Route data object.
+ * @param {Function} props.onBack - Callback to return to route list.
+ * @param {Function} props.onSelectStop - Callback to open stop details.
+ * @param {Function} props.onViewOnMap - Callback to view route on map.
+ * @param {Array<number|string>} props.favoriteRouteIds - Array of favorite route IDs.
+ * @param {Function} props.onToggleFavorite - Callback to toggle favorite state.
+ * @returns {JSX.Element} Rendered detail view.
+ */
+export default function RouteDetail({
+  route,
+  onBack,
+  onSelectStop,
+  onViewOnMap,
+  favoriteRouteIds = [],
+  onToggleFavorite,
+}) {
+  const [etas, setEtas] = useState([]);
+
+  /**
+   * Loads active ETAs for buses operating on this route.
+   */
+  const loadEtas = async () => {
+    if (!route || !route.id) return;
+    try {
+      const data = await fetchRouteEtas(route.id);
+      setEtas(data);
+    } catch (err) {
+      console.error('Failed loading route ETAs', err);
+    }
+  };
+
+  useEffect(() => {
+    loadEtas();
+  }, [route]);
+
+  if (!route) return null;
+
+  const isFav = favoriteRouteIds.includes(route.id);
+  const orderedStops = route.stops ? [...route.stops].sort((a, b) => a.stop_order - b.stop_order) : [];
+
+  return (
+    <div className="passenger-view route-detail-view">
+      <div className="detail-top-bar">
+        <button type="button" className="icon-back-btn" onClick={onBack} title="Back to Routes">
+          <ArrowLeft size={20} />
+        </button>
+        <span className="detail-route-badge">{route.route_code || `R-${route.id}`}</span>
+        <button
+          type="button"
+          className={`fav-btn ${isFav ? 'fav-active' : ''}`}
+          onClick={() => onToggleFavorite && onToggleFavorite(route.id)}
+          title={isFav ? 'Remove favorite' : 'Add favorite'}
+        >
+          <Star size={20} fill={isFav ? 'currentColor' : 'none'} />
+        </button>
+      </div>
+
+      <div className="detail-header-card">
+        <h2 className="detail-title">{route.name}</h2>
+        <div className="detail-actions-row">
+          <button
+            type="button"
+            className="action-btn primary-action"
+            onClick={() => onViewOnMap && onViewOnMap(route)}
+          >
+            <Map size={16} />
+            <span>View on Map</span>
+          </button>
+        </div>
+      </div>
+
+      {etas.length > 0 && (
+        <div className="active-buses-section">
+          <h3 className="section-title">Buses Currently Operating</h3>
+          <div className="eta-cards-row">
+            {etas.map((etaItem, idx) => (
+              <div key={idx} className="eta-summary-card">
+                <div className="eta-card-header">
+                  <span className="bus-label">Bus #{etaItem.bus_id}</span>
+                  <StatusBadge type={etaItem.source} />
+                </div>
+                <div className="eta-card-time">
+                  <Clock size={16} />
+                  <span>ETA: ~{etaItem.eta_minutes || 5} min</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="stops-timeline-section">
+        <h3 className="section-title">Route Stops ({orderedStops.length})</h3>
+
+        <div className="timeline-container">
+          {orderedStops.map((item, index) => {
+            const stop = item.stop || item;
+            const isFirst = index === 0;
+            const isLast = index === orderedStops.length - 1;
+
+            return (
+              <div
+                key={item.id || index}
+                className="timeline-item"
+                onClick={() => onSelectStop && onSelectStop(stop)}
+              >
+                <div className="timeline-marker-column">
+                  <div className={`timeline-dot ${isFirst ? 'dot-start' : isLast ? 'dot-end' : ''}`} />
+                  {!isLast && <div className="timeline-line" />}
+                </div>
+
+                <div className="timeline-content card-hover">
+                  <div className="timeline-stop-info">
+                    <span className="stop-order">#{item.stop_order}</span>
+                    <h4 className="stop-name">{stop.name}</h4>
+                  </div>
+                  {item.distance_from_previous_stop > 0 && (
+                    <div className="stop-metrics">
+                      <span>{item.distance_from_previous_stop} km</span>
+                      <span className="metric-dot">•</span>
+                      <span>~{item.expected_travel_time} min travel</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}

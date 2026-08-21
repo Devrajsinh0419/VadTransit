@@ -7,7 +7,8 @@ import math
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import City, Route, Stop, RouteStop, Bus, Schedule, ServiceAlert
+from rest_framework.permissions import AllowAny
+from .models import City, Route, Stop, RouteStop, Bus, Schedule, ServiceAlert, Favorite
 from .permissions import IsAdminOrReadOnly
 from .serializers import (
     CitySerializer,
@@ -17,7 +18,9 @@ from .serializers import (
     BusSerializer,
     ScheduleSerializer,
     ServiceAlertSerializer,
+    FavoriteSerializer,
 )
+
 
 
 def calculate_haversine_distance(lat1, lon1, lat2, lon2):
@@ -210,3 +213,26 @@ class ServiceAlertViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
 
         return queryset
+
+
+class FavoriteViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for passenger Favorites.
+    Public endpoints (no account required).
+    Endpoints:
+    - GET /api/favorites/ (supports device_id query param)
+    - POST /api/favorites/
+    - DELETE /api/favorites/{favorite_id}/
+    """
+    queryset = Favorite.objects.all()
+    serializer_class = FavoriteSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        """Filters favorites by device_id query parameter if provided."""
+        queryset = Favorite.objects.all()
+        device_id = self.request.query_params.get('device_id')
+        if device_id:
+            queryset = queryset.filter(device_id=device_id)
+        return queryset
+
