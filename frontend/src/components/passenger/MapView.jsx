@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { fetchStops, fetchBuses, fetchBusLocation, fetchRoutes } from '../../services/api';
+import { fetchStops, fetchBuses, fetchRoutes } from '../../services/api';
 import { RotateCcw, MapPin, Bus, Route as RouteIcon } from 'lucide-react';
 
 // OpenStreetMap standard raster basemap style (Instant, bulletproof rendering for Vadodara)
@@ -32,6 +32,7 @@ const OSM_RASTER_STYLE = {
 
 /**
  * MapView component displaying Vadodara city basemap, OpenStreetMap tiles, route polylines, stop markers, and live bus markers.
+ * Enhanced with expressive marker design, animated route polylines, and improved visual hierarchy.
  * 
  * @param {Object} props - Component props.
  * @param {Object} [props.selectedItem] - Route, stop, or bus object to focus on map.
@@ -54,6 +55,9 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   const [showStops, setShowStops] = useState(true);
   const [showBuses, setShowBuses] = useState(true);
   const [showRoutes, setShowRoutes] = useState(true);
+
+  // Animation state for route tracing
+  const [routeAnimationProgress, setRouteAnimationProgress] = useState(0);
 
   /**
    * Initializes MapLibre GL map instance centered on Vadodara city.
@@ -160,6 +164,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
 
   /**
    * Renders dual-casing polyline paths for bus routes on the MapLibre map layer.
+   * Includes animated tracing capability.
    */
   const renderRoutePolylines = () => {
     if (!mapRef.current || !mapLoaded) return;
@@ -212,7 +217,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
           },
         });
 
-        // Main colored transit line
+        // Main colored transit line with animated stroke-dasharray
         map.addLayer({
           id: lineLayerId,
           type: 'line',
@@ -226,6 +231,8 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
             'line-color': route.id === 101 ? '#1d4ed8' : '#16a34a',
             'line-width': 4.5,
             'line-opacity': 0.95,
+            'stroke-dasharray': [400, 200],
+            'stroke-dashoffset': routeAnimationProgress > 0 ? 400 - (routeAnimationProgress * 400) : 400,
           },
         });
       }
@@ -234,7 +241,34 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
 
   useEffect(() => {
     renderRoutePolylines();
-  }, [mapLoaded, routes, showRoutes]);
+  }, [mapLoaded, routes, showRoutes, routeAnimationProgress]);
+
+  /**
+   * Animates the route tracing progress.
+   * Auto-animates when routes are loaded.
+   */
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || routes.length === 0) return;
+
+    const duration = 3000; // 3 seconds for full route trace
+    const startTime = performance.now();
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      setRouteAnimationProgress(progress);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+
+    return () => {
+      setRouteAnimationProgress(0);
+    };
+  }, [mapLoaded, routes.length]);
 
   /**
    * Clears and re-renders custom SVG markers for stops and directional buses.
@@ -255,7 +289,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         const el = document.createElement('div');
         el.className = 'stop-marker-svg';
         el.innerHTML = `
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="#1d4ed8">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="#1d4ed8">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
           </svg>
         `;
@@ -288,9 +322,9 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         el.className = `bus-marker-svg ${isLive ? 'bus-live' : 'bus-stale'}`;
         el.style.transform = `rotate(${headingDeg}deg)`;
         el.innerHTML = `
-          <svg viewBox="0 0 32 32" width="30" height="30">
-            <circle cx="16" cy="16" r="14" fill="${isLive ? '#16a34a' : '#d97706'}" stroke="#ffffff" stroke-width="2.5"/>
-            <path d="M16 6 L22 22 L16 18 L10 22 Z" fill="#ffffff"/>
+          <svg viewBox="0 0 36 36" width="38" height="38">
+            <circle cx="18" cy="18" r="18" fill="${isLive ? '#16a34a' : '#d97706'}" stroke="#ffffff" stroke-width="3"/>
+            <path d="M18 8 L26 20 L18 16 L10 20 Z" fill="#ffffff"/>
           </svg>
         `;
         el.title = `${busItem.fleet_number || busItem.registration_number}`;
@@ -302,8 +336,8 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([loc.longitude, loc.latitude])
           .setPopup(
-            new maplibregl.Popup({ offset: 25 }).setHTML(
-              `<div style="font-family: sans-serif; font-size: 0.85rem;">
+            new maplibregl.Popup({ offset: 30 }).setHTML(
+              `<div style="font-family: sans-serif; font-size: 0.9rem;">
                 <strong style="color: #0f172a;">${busItem.fleet_number || 'Bus'}</strong><br/>
                 <span style="color: #64748b;">${busItem.registration_number}</span><br/>
                 Status: <strong style="color: ${isLive ? '#16a34a' : '#d97706'};">${statusLabel}</strong><br/>
@@ -323,6 +357,123 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   }, [mapLoaded, stops, activeBuses, showStops, showBuses]);
 
   /**
+   * Animates active route polyline path tracing when a user selects a route.
+   * @param {Object} route - Selected route object containing ordered stops.
+   */
+  const animateSelectedRoutePath = (route) => {
+    if (!mapRef.current || !mapLoaded || !route) return;
+    const map = mapRef.current;
+
+    const routeStops = route.stops || [];
+    const coordinates = routeStops
+      .map((s) => {
+        const stopObj = s.stop || s;
+        return stopObj.latitude && stopObj.longitude
+          ? [parseFloat(stopObj.longitude), parseFloat(stopObj.latitude)]
+          : null;
+      })
+      .filter(Boolean);
+
+    if (coordinates.length < 2) return;
+
+    // Reset all route animations first
+    setRouteAnimationProgress(0);
+
+    // Find and animate the selected route
+    const animatedRoute = routes.find((r) => r.id === route.id || r.route_code === route.route_code);
+    if (!animatedRoute) return;
+
+    const sourceId = `active-route-anim-source`;
+    const casingLayerId = 'active-route-anim-casing';
+    const lineLayerId = 'active-route-anim-line';
+
+    const fullGeojson = {
+      type: 'Feature',
+      properties: { name: route.name },
+      geometry: {
+        type: 'LineString',
+        coordinates: [coordinates[0]],
+      },
+    };
+
+    // Update the source with all coordinates but start animation from first
+    if (map.getSource(sourceId)) {
+      map.getSource(sourceId).setData(fullGeojson);
+    } else {
+      map.addSource(sourceId, { type: 'geojson', data: fullGeojson });
+
+      // Animated route with progressive tracing
+      map.addLayer({
+        id: casingLayerId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#0f172a',
+          'line-width': 9,
+          'line-opacity': 0.7,
+        },
+      });
+
+      map.addLayer({
+        id: lineLayerId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#2563eb',
+          'line-width': 6,
+          'line-opacity': 1.0,
+          'stroke-dasharray': [400, 200],
+          'stroke-dashoffset': 400,
+        },
+      });
+    }
+
+    // Animate progressive line tracing frame by frame
+    let stepIndex = 1;
+    const totalSteps = coordinates.length;
+    const currentCoords = [coordinates[0]];
+
+    const interval = setInterval(() => {
+      if (stepIndex >= totalSteps) {
+        clearInterval(interval);
+        // Set final offset to 0
+        if (map.getSource(sourceId)) {
+          map.getSource(sourceId).setData({
+            type: 'Feature',
+            properties: { name: route.name },
+            geometry: {
+              type: 'LineString',
+              coordinates: coordinates,
+            },
+          });
+          map.setPaintProperty(lineLayerId, 'stroke-dashoffset', 0);
+        }
+        return;
+      }
+      currentCoords.push(coordinates[stepIndex]);
+      stepIndex++;
+
+      const updatedGeojson = {
+        type: 'Feature',
+        properties: { name: route.name },
+        geometry: {
+          type: 'LineString',
+          coordinates: [...currentCoords],
+        },
+      };
+
+      if (map.getSource(sourceId)) {
+        map.getSource(sourceId).setData(updatedGeojson);
+        // Update dash offset to create tracing effect
+        const remaining = totalSteps - stepIndex;
+        map.setPaintProperty(lineLayerId, 'stroke-dashoffset', 400 - (remaining * (400 / totalSteps)));
+      }
+    }, 150);
+  };
+
+  /**
    * Resets map camera to default Vadodara center.
    */
   const handleResetCenter = () => {
@@ -331,11 +482,17 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
   };
 
   /**
-   * Centers map camera on selected item (route, stop, or bus) if provided.
+   * Centers map camera or animates polyline path on selected item (route, stop, or bus).
    */
   useEffect(() => {
-    if (!mapRef.current || !selectedItem) return;
+    if (!mapRef.current || !mapLoaded || !selectedItem) return;
     const map = mapRef.current;
+
+    // Check if selected item is a route
+    if (selectedItem.route_code || selectedItem.stops || selectedItem.route_id) {
+      animateSelectedRoutePath(selectedItem);
+      return;
+    }
 
     let coords = null;
     if (selectedItem.latitude && selectedItem.longitude) {
@@ -347,7 +504,7 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
     if (coords) {
       map.flyTo({ center: coords, zoom: 15, duration: 1500 });
     }
-  }, [selectedItem]);
+  }, [selectedItem, mapLoaded]);
 
   return (
     <div className="passenger-view map-view-container">
@@ -408,10 +565,10 @@ export default function MapView({ selectedItem, onSelectStop, onSelectBus }) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d4ed8"><circle cx="12" cy="12" r="8"/></svg> Stop
           </span>
           <span className="legend-item">
-            <svg width="14" height="14" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#16a34a"/></svg> Live Bus
+            <svg width="14" height="14" viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#16a34a"/></svg> Live Bus
           </span>
           <span className="legend-item">
-            <svg width="14" height="14" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#d97706"/></svg> Recent / Stale
+            <svg width="14" height="14" viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#d97706"/></svg> Recent / Stale
           </span>
         </div>
       </div>

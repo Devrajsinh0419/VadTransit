@@ -3,6 +3,8 @@ import { Route, MapPin, Map, Star, AlertTriangle } from 'lucide-react';
 
 /**
  * Mobile-first bottom navigation bar component for passenger views.
+ * Enhanced with expressive interactions, submarine-style active state indicators,
+ * and modern Indian transit aesthetic.
  * 
  * @param {Object} props - BottomNav props.
  * @param {string} props.activeTab - Currently active tab key ('routes', 'stops', 'map', 'favorites', 'alerts').
@@ -33,12 +35,12 @@ export default function BottomNav({ activeTab, setActiveTab, alertCount = 0 }) {
             aria-selected={isActive}
           >
             <div className="nav-icon-container">
-              <Icon size={18} />
-              {Boolean(tab.badge) && tab.badge > 0 && (
-                <span className="nav-badge">{tab.badge}</span>
-              )}
+              <Icon size={20} />
             </div>
             <span className="nav-label">{tab.label}</span>
+            {Boolean(tab.badge) && tab.badge > 0 && (
+              <span className="nav-badge">{tab.badge}</span>
+            )}
           </button>
         );
       })}

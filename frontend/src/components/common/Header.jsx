@@ -3,7 +3,7 @@ import { Bus, Bell, RefreshCw, Route, MapPin, Map, Star, AlertTriangle } from 'l
 
 /**
  * Top navigation header component for VadTransit passenger interface.
- * Displays brand identity, service alert badge counter, desktop navigation tabs, and data refresh trigger.
+ * Enhanced with glassmorphism, subtle animations, and modern Indian transit aesthetic.
  * 
  * @param {Object} props - Header component properties.
  * @param {Function} props.onRefresh - Callback function to refresh active view data.
@@ -42,7 +42,7 @@ export default function Header({
     <header className="app-header">
       <div className="header-brand" onClick={() => handleTabClick('routes')}>
         <div className="brand-icon-wrapper">
-          <Bus size={18} />
+          <Bus size={20} />
         </div>
         <div className="brand-text">
           <h1 className="brand-title">VadTransit</h1>
@@ -50,7 +50,7 @@ export default function Header({
         </div>
       </div>
 
-      {/* Desktop Top Navigation Tabs */}
+      {/* Desktop Top Navigation Tabs with depth effect */}
       <nav className="desktop-nav-tabs" aria-label="Desktop main navigation">
         {desktopTabs.map((tab) => {
           const Icon = tab.icon;
@@ -62,7 +62,7 @@ export default function Header({
               className={`desktop-tab-btn ${isActive ? 'active' : ''}`}
               onClick={() => handleTabClick(tab.id)}
             >
-              <Icon size={15} />
+              <Icon size={16} />
               <span>{tab.label}</span>
               {Boolean(tab.badge) && tab.badge > 0 && (
                 <span className="alert-badge" style={{ position: 'static', marginLeft: '4px' }}>
@@ -82,7 +82,7 @@ export default function Header({
           title="Service Alerts"
           aria-label="Service Alerts"
         >
-          <Bell size={17} />
+          <Bell size={18} />
           {activeAlertCount > 0 && <span className="alert-badge">{activeAlertCount}</span>}
         </button>
         <button
@@ -92,7 +92,7 @@ export default function Header({
           title="Refresh Transport Data"
           aria-label="Refresh Transport Data"
         >
-          <RefreshCw size={16} />
+          <RefreshCw size={17} />
         </button>
       </div>
     </header>

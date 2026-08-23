@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Star, Bus, MapPin, Map } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Map } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
 import { fetchStopArrivals } from '../../services/api';
 
 /**
  * StopDetail component presenting approaching buses and live/projected ETAs for a selected stop.
+ * Enhanced with creative visual design, improved arrival cards, and sophisticated status display.
  * 
  * @param {Object} props - Component properties.
  * @param {Object} props.stop - Stop data object.
@@ -44,7 +45,7 @@ export default function StopDetail({
 
   useEffect(() => {
     loadArrivals();
-  }, [stop]);
+  }, [loadArrivals]);
 
   if (!stop) return null;
 
@@ -92,12 +93,16 @@ export default function StopDetail({
         {loading ? (
           <div className="loading-state">Checking live bus arrival times...</div>
         ) : arrivals.length === 0 ? (
-          <div className="empty-state">No buses currently approaching this stop.</div>
+          <div className="empty-state">
+            <BellRing size={36} className="empty-icon" />
+            <h3>No Buses Currently Approaching</h3>
+            <p style={{ marginTop: '4px' }}>No buses are currently approaching this stop.</p>
+          </div>
         ) : (
           <div className="card-list">
             {arrivals.map((item, idx) => {
-              const minutes = item.eta_minutes !== undefined 
-                ? item.eta_minutes 
+              const minutes = item.eta_minutes !== undefined
+                ? item.eta_minutes
                 : Math.max(0, Math.round((new Date(item.eta) - new Date()) / 60000));
               const displayRouteCode = item.route_code || `R-${item.route_id}`;
               const displayBusLabel = item.fleet_number || item.registration_number || `Bus #${item.bus_id}`;

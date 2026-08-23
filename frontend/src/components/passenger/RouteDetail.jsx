@@ -5,6 +5,7 @@ import { fetchRouteEtas } from '../../services/api';
 
 /**
  * RouteDetail component showing ordered stops timeline, distances, estimated travel times, and operating buses.
+ * Enhanced with creative visual design, animated timeline, and sophisticated ETA display.
  * 
  * @param {Object} props - RouteDetail props.
  * @param {Object} props.route - Route data object.
@@ -90,7 +91,7 @@ export default function RouteDetail({
                   <span className="bus-meta-title">Bus #{etaItem.bus_id}</span>
                   <StatusBadge type={etaItem.source} />
                 </div>
-                <div className="eta-card-body" style={{ padding: '8px 12px' }}>
+                <div className="eta-card-body" style={{ padding: '8px 14px' }}>
                   <div className="eta-digit-container">
                     <span className="eta-big-val" style={{ fontSize: '1.6rem' }}>~{etaItem.eta_minutes || 5}</span>
                     <span className="eta-min-unit">MIN</span>

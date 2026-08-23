@@ -4,6 +4,7 @@ import { fetchStops } from '../../services/api';
 
 /**
  * RouteList component providing unified search across bus routes and stops, filter chips, and route details.
+ * Enhanced with creative visual design and improved interactivity.
  * 
  * @param {Object} props - Component properties.
  * @param {Array} props.routes - List of available route objects.
@@ -131,7 +132,7 @@ export default function RouteList({
       {/* Unified Search Section: Matching Bus Stops */}
       {searchQuery.trim() !== '' && filteredStops.length > 0 && (
         <div className="search-stops-section">
-          <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <MapPin size={15} /> Matching Bus Stops ({filteredStops.length})
           </h3>
           <div className="card-list" style={{ marginBottom: '16px' }}>

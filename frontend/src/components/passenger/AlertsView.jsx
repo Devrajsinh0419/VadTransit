@@ -34,7 +34,7 @@ export default function AlertsView({ onAlertCountChange }) {
 
   useEffect(() => {
     loadAlerts();
-  }, []);
+  }, [loadAlerts]);
 
   /**
    * Formats ISO date timestamp string into human readable alert date/time.

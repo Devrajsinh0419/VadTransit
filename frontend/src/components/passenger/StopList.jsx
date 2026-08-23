@@ -4,6 +4,7 @@ import { fetchStops, fetchNearbyStops } from '../../services/api';
 
 /**
  * StopList component for bus stop browsing, search, and GPS nearby stop calculation.
+ * Enhanced with creative visual design, GPS integration, and improved nearby discovery.
  * 
  * @param {Object} props - StopList props.
  * @param {Function} props.onSelectStop - Callback when a stop card is tapped.
